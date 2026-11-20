@@ -103,6 +103,77 @@ it('hides a succeeded image url that has expired', function () {
             ->where('generations.0.image_url', null));
 });
 
+it('refreshes a pending generation into the succeeded charge and image', function () {
+    $user = User::factory()->create();
+    $generation = makeListedGeneration($user, [
+        'status' => GenerationStatus::Pending,
+        'estimated_charge_nano' => 57400000,
+    ]);
+    makeListedGeneration(User::factory()->create(), [
+        'prompt' => 'someone else',
+        'estimated_charge_nano' => 1,
+    ]);
+    $url = 'https://pixelforge.test/images/gen_done.png';
+
+    $this->withoutVite()
+        ->actingAs($user)
+        ->get(route('generations.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('generations', 1)
+            ->where('generations.0.id', $generation->id)
+            ->where('generations.0.status', 'pending')
+            ->where('generations.0.status_label', 'Enviando / aguardando vaga')
+            ->where('generations.0.amount', '$0,0574')
+            ->where('generations.0.image_url', null));
+
+    $generation->status = GenerationStatus::Succeeded;
+    $generation->charge_nano = 467343750;
+    $generation->image_url = $url;
+    $generation->image_url_expires_at = now()->addHour();
+    $generation->save();
+
+    $this->withoutVite()
+        ->actingAs($user)
+        ->get(route('generations.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('generations', 1)
+            ->where('generations.0.id', $generation->id)
+            ->where('generations.0.status', 'succeeded')
+            ->where('generations.0.amount', '$0,467344')
+            ->where('generations.0.image_url', $url));
+});
+
+it('refreshes a generation into a failed charge without an image', function () {
+    $user = User::factory()->create();
+    $generation = makeListedGeneration($user, [
+        'status' => GenerationStatus::Pending,
+        'estimated_charge_nano' => 57400000,
+    ]);
+
+    $this->withoutVite()
+        ->actingAs($user)
+        ->get(route('generations.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('generations.0.status', 'pending'));
+
+    $generation->status = GenerationStatus::Failed;
+    $generation->charge_nano = 0;
+    $generation->image_url = 'https://pixelforge.test/images/failed.png';
+    $generation->image_url_expires_at = now()->addHour();
+    $generation->save();
+
+    $this->withoutVite()
+        ->actingAs($user)
+        ->get(route('generations.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('generations.0.amount', '$0,0000')
+            ->where('generations.0.image_url', null));
+});
+
 it('lists only the authenticated user generations', function () {
     $user = User::factory()->create();
     $own = makeListedGeneration($user, [
