@@ -1,9 +1,12 @@
 <?php
 
+use App\Applications\Integration\Pixelforge\Http\Controllers\PixelforgeWebhookController;
 use App\Http\Controllers\GenerationController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
+
+Route::post('webhooks/pixelforge', [PixelforgeWebhookController::class, 'store'])->name('webhooks.pixelforge');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
