@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\Credits\CreditLedger;
+use App\Services\Pixelforge\MoneyFormatter;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -43,7 +45,19 @@ class HandleInertiaRequests extends Middleware
                 'user' => $this->sharedUser($request),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'creditBalance' => $this->creditBalance($request),
         ];
+    }
+
+    private function creditBalance(Request $request): ?string
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        return app(MoneyFormatter::class)->format(app(CreditLedger::class)->balanceNano($user));
     }
 
     /**

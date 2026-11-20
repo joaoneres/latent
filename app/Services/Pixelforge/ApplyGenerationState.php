@@ -4,12 +4,17 @@ namespace App\Services\Pixelforge;
 
 use App\Enums\GenerationStatus;
 use App\Models\Generation;
+use App\Models\User;
+use App\Services\Credits\CreditLedger;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 final class ApplyGenerationState
 {
-    public function __construct(private PricingCalculator $calculator) {}
+    public function __construct(
+        private PricingCalculator $calculator,
+        private CreditLedger $ledger,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $object
@@ -38,12 +43,15 @@ final class ApplyGenerationState
                 $locked->submitted_at = now();
             }
 
+            $chargeNano = null;
+
             if ($incoming === GenerationStatus::Succeeded) {
                 $usage = $this->usage($object);
                 $rates = $this->rates($object);
                 $providerCost = $this->calculator->providerCostNano($usage, $rates);
+                $chargeNano = $this->calculator->userChargeNano($providerCost);
                 $locked->provider_cost_nano = $providerCost;
-                $locked->charge_nano = $this->calculator->userChargeNano($providerCost);
+                $locked->charge_nano = $chargeNano;
                 $locked->image_url = isset($object['image_url']) ? (string) $object['image_url'] : null;
                 $completedAt = isset($object['completed_at']) && is_string($object['completed_at'])
                     ? Carbon::parse($object['completed_at'])
@@ -64,6 +72,17 @@ final class ApplyGenerationState
             }
 
             $locked->save();
+
+            if ($chargeNano !== null) {
+                $this->lockUser($locked);
+                $this->ledger->release($locked);
+                $this->ledger->charge($locked, $chargeNano);
+            }
+
+            if ($incoming === GenerationStatus::Failed) {
+                $this->lockUser($locked);
+                $this->ledger->release($locked);
+            }
         });
 
         $generation->refresh();
@@ -85,9 +104,16 @@ final class ApplyGenerationState
             $locked->error_message = $message;
             $locked->completed_at = now();
             $locked->save();
+            $this->lockUser($locked);
+            $this->ledger->release($locked);
         });
 
         $generation->refresh();
+    }
+
+    private function lockUser(Generation $generation): void
+    {
+        User::query()->whereKey($generation->user_id)->lockForUpdate()->firstOrFail();
     }
 
     /**

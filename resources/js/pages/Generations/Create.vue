@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { onBeforeUnmount, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { store as purchaseCredits } from '@/routes/credits';
 import { create, index, store } from '@/routes/generations';
 
 defineProps<{
@@ -12,6 +13,14 @@ defineProps<{
         max: string;
     };
 }>();
+
+const page = usePage();
+
+function buy(amountNano: 1000000000 | 5000000000): void {
+    router.post(purchaseCredits.url(), {
+        amount_nano: amountNano,
+    });
+}
 
 const form = useForm({
     prompt: '',
@@ -41,6 +50,12 @@ function referenceImageError(): string | undefined {
     const errors: Record<string, string | undefined> = form.errors;
 
     return errors['reference_images.0'];
+}
+
+function balanceError(): string | undefined {
+    const errors: Record<string, string | undefined> = form.errors;
+
+    return errors.balance;
 }
 
 let estimateTimer: ReturnType<typeof setTimeout> | undefined;
@@ -111,6 +126,13 @@ defineOptions({
     <Head title="Gerar" />
 
     <form class="flex max-w-xl flex-col gap-6 p-4" @submit.prevent="submit">
+        <p>{{ page.props.creditBalance }}</p>
+
+        <div class="flex gap-2">
+            <Button type="button" @click="buy(1000000000)">+$1</Button>
+            <Button type="button" @click="buy(5000000000)">+$5</Button>
+        </div>
+
         <div class="grid gap-2">
             <Label for="prompt">Prompt</Label>
             <textarea
@@ -183,6 +205,8 @@ defineOptions({
         </div>
 
         <p>Estimado: {{ estimate.min }} – {{ estimate.max }}</p>
+
+        <InputError :message="balanceError()" />
 
         <Button type="submit" :disabled="form.processing">Gerar</Button>
     </form>
