@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { ReloadOptions } from '@inertiajs/core';
-import { Head, Link, usePoll } from '@inertiajs/vue3';
-import { onMounted, watch } from 'vue';
+import { Head, Link, usePage, usePoll } from '@inertiajs/vue3';
+import { computed, onMounted, watch } from 'vue';
 import { create, index } from '@/routes/generations';
+import { index as report } from '@/routes/reports';
 
 const props = defineProps<{
     generations: {
@@ -14,6 +15,9 @@ const props = defineProps<{
         image_url: string | null;
     }[];
 }>();
+
+const page = usePage();
+const isAdmin = computed(() => page.props.auth.user.is_admin === true);
 
 const openStatuses = ['pending', 'queued', 'processing'] as const;
 
@@ -70,6 +74,9 @@ defineOptions({
 
     <div class="flex flex-col gap-4 p-4">
         <Link :href="create()" class="text-sm underline">Gerar</Link>
+        <Link v-if="isAdmin" :href="report()" class="text-sm underline">
+            Relatório
+        </Link>
 
         <ul class="flex flex-col gap-3">
             <li

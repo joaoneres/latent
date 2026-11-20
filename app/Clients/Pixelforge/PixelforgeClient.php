@@ -72,6 +72,26 @@ class PixelforgeClient
     /**
      * @throws ClientException
      */
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws ClientException
+     */
+    public function usage(string $startDate, string $endDate): array
+    {
+        $payload = $this->send('GET', 'usage', [
+            'query' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ],
+        ])->json();
+
+        return is_array($payload) ? $payload : [];
+    }
+
+    /**
+     * @throws ClientException
+     */
     public function generation(string $pixelforgeId): Response
     {
         try {
