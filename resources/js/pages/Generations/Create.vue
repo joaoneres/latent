@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { onBeforeUnmount, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { index, store } from '@/routes/generations';
+import { create, index, store } from '@/routes/generations';
+
+defineProps<{
+    estimate: {
+        min: string;
+        max: string;
+    };
+}>();
 
 const form = useForm({
     prompt: '',
@@ -34,6 +42,58 @@ function referenceImageError(): string | undefined {
 
     return errors['reference_images.0'];
 }
+
+let estimateTimer: ReturnType<typeof setTimeout> | undefined;
+
+function scheduleEstimate(): void {
+    if (estimateTimer !== undefined) {
+        clearTimeout(estimateTimer);
+    }
+
+    estimateTimer = setTimeout(() => {
+        router.get(
+            create.url(),
+            {
+                prompt: form.prompt,
+                size: form.size,
+                quality: form.quality,
+                reference_images: [
+                    form.reference_image_1,
+                    form.reference_image_2,
+                    form.reference_image_3,
+                    form.reference_image_4,
+                ],
+            },
+            {
+                only: ['estimate'],
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    }, 300);
+}
+
+watch(
+    () => [
+        form.prompt,
+        form.size,
+        form.quality,
+        form.reference_image_1,
+        form.reference_image_2,
+        form.reference_image_3,
+        form.reference_image_4,
+    ],
+    () => {
+        scheduleEstimate();
+    },
+);
+
+onBeforeUnmount(() => {
+    if (estimateTimer !== undefined) {
+        clearTimeout(estimateTimer);
+    }
+});
 
 defineOptions({
     layout: {
@@ -121,6 +181,8 @@ defineOptions({
             />
             <InputError :message="referenceImageError()" />
         </div>
+
+        <p>Estimado: {{ estimate.min }} – {{ estimate.max }}</p>
 
         <Button type="submit" :disabled="form.processing">Gerar</Button>
     </form>

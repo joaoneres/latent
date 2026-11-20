@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Applications\App\Generation\Http\Handlers\EstimateGenerationHandler;
 use App\Applications\App\Generation\Http\Handlers\ListGenerationsHandler;
 use App\Applications\App\Generation\Http\Handlers\StoreGenerationHandler;
 use App\Applications\App\Generation\Http\Request\StoreGenerationRequest;
@@ -19,9 +20,11 @@ class GenerationController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request, EstimateGenerationHandler $handler): Response
     {
-        return Inertia::render('Generations/Create');
+        return Inertia::render('Generations/Create', [
+            'estimate' => $handler->handle($request),
+        ]);
     }
 
     public function store(StoreGenerationRequest $request, StoreGenerationHandler $handler): RedirectResponse
