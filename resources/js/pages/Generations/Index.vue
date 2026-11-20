@@ -7,6 +7,9 @@ defineProps<{
         id: number;
         prompt: string;
         status: string;
+        status_label: string;
+        amount: string;
+        image_url: string | null;
     }[];
 }>();
 
@@ -20,14 +23,6 @@ defineOptions({
         ],
     },
 });
-
-function statusLabel(status: string): string {
-    if (status === 'pending') {
-        return 'Enviando / aguardando vaga';
-    }
-
-    return status;
-}
 </script>
 
 <template>
@@ -43,7 +38,13 @@ function statusLabel(status: string): string {
                 class="rounded-md border p-3"
             >
                 <p>{{ generation.prompt }}</p>
-                <p>{{ statusLabel(generation.status) }}</p>
+                <p>{{ generation.status_label }}</p>
+                <p>{{ generation.amount }}</p>
+                <img
+                    v-if="generation.image_url !== null"
+                    :src="generation.image_url"
+                    :alt="generation.prompt"
+                />
             </li>
         </ul>
     </div>
