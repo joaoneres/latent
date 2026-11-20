@@ -36,6 +36,39 @@ class PixelforgeClient
         return $response;
     }
 
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws ClientException
+     */
+    public function pricing(): array
+    {
+        $payload = $this->send('GET', 'pricing')->json();
+
+        return is_array($payload) ? $payload : [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     *
+     * @throws ClientException
+     */
+    public function createGeneration(string $idempotencyKey, array $body): Response
+    {
+        if (array_key_exists('reference_images', $body) && ($body['reference_images'] === [] || $body['reference_images'] === null)) {
+            unset($body['reference_images']);
+        }
+
+        try {
+            return $this->request()
+                ->asJson()
+                ->withHeader('Idempotency-Key', $idempotencyKey)
+                ->post('generations', $body);
+        } catch (ConnectionException $exception) {
+            throw new ClientException($this->redact($exception->getMessage()), $exception);
+        }
+    }
+
     private function request(): PendingRequest
     {
         $pixelforge = config('services.pixelforge');
