@@ -69,6 +69,18 @@ class PixelforgeClient
         }
     }
 
+    /**
+     * @throws ClientException
+     */
+    public function generation(string $pixelforgeId): Response
+    {
+        try {
+            return $this->request()->get('generations/'.$pixelforgeId);
+        } catch (ConnectionException $exception) {
+            throw new ClientException($this->redact($exception->getMessage()), $exception);
+        }
+    }
+
     private function request(): PendingRequest
     {
         $pixelforge = config('services.pixelforge');
