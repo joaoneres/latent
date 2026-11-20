@@ -73,6 +73,8 @@ defineOptions({
     <Head title="Gerações" />
 
     <div class="flex flex-col gap-4 p-4">
+        <p>{{ page.props.creditBalance }}</p>
+
         <Link :href="create()" class="text-sm underline">Gerar</Link>
         <Link v-if="isAdmin" :href="report()" class="text-sm underline">
             Relatório

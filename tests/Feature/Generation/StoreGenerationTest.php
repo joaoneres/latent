@@ -3,6 +3,7 @@
 use App\Jobs\Pixelforge\SubmitGeneration;
 use App\Models\Generation;
 use App\Models\User;
+use App\Services\Credits\CreditLedger;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
@@ -22,6 +23,7 @@ it('stores a pending generation and dispatches submission', function () {
     ]);
 
     $user = User::factory()->create();
+    app(CreditLedger::class)->purchase($user, 1_000_000_000);
     $other = User::factory()->create();
     $other->generations()->create([
         'prompt' => 'someone else',

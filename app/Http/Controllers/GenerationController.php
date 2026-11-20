@@ -29,7 +29,13 @@ class GenerationController extends Controller
 
     public function store(StoreGenerationRequest $request, StoreGenerationHandler $handler): RedirectResponse
     {
-        $handler->handle($request);
+        $message = $handler->handle($request);
+
+        if (is_string($message)) {
+            return back()->withErrors([
+                'balance' => $message,
+            ]);
+        }
 
         return redirect()->route('generations.index');
     }

@@ -6,8 +6,11 @@ use App\Applications\App\Generation\Http\Request\StoreGenerationRequest;
 use App\Enums\GenerationStatus;
 use App\Jobs\Pixelforge\SubmitGeneration;
 use App\Models\User;
+use App\Services\Credits\CreditLedger;
+use App\Services\Pixelforge\MoneyFormatter;
 use App\Services\Pixelforge\PricingCalculator;
 use App\Services\Pixelforge\PricingCatalog;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class StoreGenerationHandler
@@ -15,9 +18,11 @@ class StoreGenerationHandler
     public function __construct(
         private PricingCatalog $pricing,
         private PricingCalculator $calculator,
+        private CreditLedger $ledger,
+        private MoneyFormatter $formatter,
     ) {}
 
-    public function handle(StoreGenerationRequest $request): void
+    public function handle(StoreGenerationRequest $request): ?string
     {
         /** @var User $user */
         $user = $request->user();
@@ -32,17 +37,36 @@ class StoreGenerationHandler
             count($referenceImages),
             $pricing,
         );
+        $maximum = $estimate['max'];
 
-        $generation = $user->generations()->create([
-            'prompt' => $validated['prompt'],
-            'size' => $validated['size'],
-            'quality' => $validated['quality'],
-            'reference_images' => $referenceImages,
-            'idempotency_key' => (string) Str::uuid(),
-            'status' => GenerationStatus::Pending,
-            'estimated_charge_nano' => $estimate['max'],
-        ]);
+        $generationId = DB::transaction(function () use ($user, $validated, $referenceImages, $maximum): ?int {
+            $locked = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
-        SubmitGeneration::dispatch($generation->id);
+            if ($this->ledger->balanceNano($locked) < $maximum) {
+                return null;
+            }
+
+            $generation = $locked->generations()->create([
+                'prompt' => $validated['prompt'],
+                'size' => $validated['size'],
+                'quality' => $validated['quality'],
+                'reference_images' => $referenceImages,
+                'idempotency_key' => (string) Str::uuid(),
+                'status' => GenerationStatus::Pending,
+                'estimated_charge_nano' => $maximum,
+            ]);
+
+            $this->ledger->hold($locked, $generation, $maximum);
+
+            return $generation->id;
+        });
+
+        if ($generationId === null) {
+            return 'Saldo insuficiente. Esta geração custa até '.$this->formatter->format($maximum).'.';
+        }
+
+        SubmitGeneration::dispatch($generationId);
+
+        return null;
     }
 }
