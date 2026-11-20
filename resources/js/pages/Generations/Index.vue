@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import type { ReloadOptions } from '@inertiajs/core';
+import { Head, Link, usePoll } from '@inertiajs/vue3';
+import { onMounted, watch } from 'vue';
 import { create, index } from '@/routes/generations';
 
-defineProps<{
+const props = defineProps<{
     generations: {
         id: number;
         prompt: string;
@@ -12,6 +14,44 @@ defineProps<{
         image_url: string | null;
     }[];
 }>();
+
+const openStatuses = ['pending', 'queued', 'processing'] as const;
+
+function isOpen(status: string): boolean {
+    return openStatuses.some((openStatus) => openStatus === status);
+}
+
+function pollRequest(): ReloadOptions & { preserveScroll: true } {
+    return {
+        only: ['generations'],
+        preserveScroll: true,
+    };
+}
+
+const { start, stop } = usePoll(3000, pollRequest, {
+    autoStart: false,
+});
+
+onMounted(() => {
+    if (props.generations.some((generation) => isOpen(generation.status))) {
+        start();
+    }
+});
+
+watch(
+    () => props.generations,
+    (generations) => {
+        const settled = generations.every(
+            (generation) =>
+                generation.status === 'succeeded' ||
+                generation.status === 'failed',
+        );
+
+        if (settled) {
+            stop();
+        }
+    },
+);
 
 defineOptions({
     layout: {
