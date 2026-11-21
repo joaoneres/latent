@@ -5,7 +5,6 @@ import { onMounted, ref, watch } from 'vue';
 import GenerationsTable from '@/components/GenerationsTable.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
 import { create, index } from '@/routes/generations';
 import type { GenerationRow } from '@/types/generation';
 
@@ -14,7 +13,7 @@ const props = defineProps<{
 }>();
 
 const openStatuses = ['pending', 'queued', 'processing'] as const;
-const updating = ref(false);
+const polling = ref(false);
 
 function isOpen(status: string): boolean {
     return openStatuses.some((openStatus) => openStatus === status);
@@ -33,17 +32,17 @@ const { start, stop } = usePoll(3000, pollRequest, {
 
 function syncPoll(generations: GenerationRow[]): void {
     if (generations.some((generation) => isOpen(generation.status))) {
-        if (!updating.value) {
-            updating.value = true;
+        if (!polling.value) {
+            polling.value = true;
             start();
         }
 
         return;
     }
 
-    if (updating.value) {
+    if (polling.value) {
         stop();
-        updating.value = false;
+        polling.value = false;
     }
 }
 
@@ -78,10 +77,6 @@ defineOptions({
             title="Generations"
             description="Runs you have sent, including the ones still in progress."
         >
-            <template v-if="updating" #status>
-                <Spinner />
-                Updating
-            </template>
             <template #actions>
                 <Button as-child>
                     <Link :href="create()">New generation</Link>
