@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { onBeforeUnmount, watch } from 'vue';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import PageHeader from '@/components/PageHeader.vue';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { store as purchaseCredits } from '@/routes/credits';
 import { create, index, store } from '@/routes/generations';
 
@@ -15,11 +24,25 @@ defineProps<{
 }>();
 
 const page = usePage();
+const estimating = ref(false);
+const buying = ref<1000000000 | 5000000000 | null>(null);
+let estimateRequest = 0;
 
 function buy(amountNano: 1000000000 | 5000000000): void {
-    router.post(purchaseCredits.url(), {
-        amount_nano: amountNano,
-    });
+    buying.value = amountNano;
+
+    router.post(
+        purchaseCredits.url(),
+        {
+            amount_nano: amountNano,
+        },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                buying.value = null;
+            },
+        },
+    );
 }
 
 const form = useForm({
@@ -66,6 +89,9 @@ function scheduleEstimate(): void {
     }
 
     estimateTimer = setTimeout(() => {
+        const requestId = ++estimateRequest;
+        estimating.value = true;
+
         router.get(
             create.url(),
             {
@@ -84,6 +110,11 @@ function scheduleEstimate(): void {
                 preserveState: true,
                 preserveScroll: true,
                 preserveUrl: true,
+                onFinish: () => {
+                    if (requestId === estimateRequest) {
+                        estimating.value = false;
+                    }
+                },
             },
         );
     }, 300);
@@ -114,8 +145,12 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Gerar',
+                title: 'Generations',
                 href: index(),
+            },
+            {
+                title: 'New generation',
+                href: create(),
             },
         ],
     },
@@ -123,15 +158,45 @@ defineOptions({
 </script>
 
 <template>
-    <Head title="Gerar" />
+    <Head title="New generation" />
 
-    <form class="flex max-w-xl flex-col gap-6 p-4" @submit.prevent="submit">
-        <p>{{ page.props.creditBalance }}</p>
+    <form
+        class="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 md:p-6"
+        @submit.prevent="submit"
+    >
+        <PageHeader
+            title="New generation"
+            description="See the quote before you run it."
+        />
 
-        <div class="flex gap-2">
-            <Button type="button" @click="buy(1000000000)">+$1</Button>
-            <Button type="button" @click="buy(5000000000)">+$5</Button>
-        </div>
+        <Card>
+            <CardHeader>
+                <CardDescription>Credit balance</CardDescription>
+                <CardTitle class="text-2xl tabular-nums">
+                    {{ page.props.creditBalance }}
+                </CardTitle>
+            </CardHeader>
+            <CardContent class="flex gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    :disabled="buying !== null || form.processing"
+                    @click="buy(1000000000)"
+                >
+                    <Spinner v-if="buying === 1000000000" />
+                    +$1
+                </Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    :disabled="buying !== null || form.processing"
+                    @click="buy(5000000000)"
+                >
+                    <Spinner v-if="buying === 5000000000" />
+                    +$5
+                </Button>
+            </CardContent>
+        </Card>
 
         <div class="grid gap-2">
             <Label for="prompt">Prompt</Label>
@@ -141,73 +206,97 @@ defineOptions({
                 required
                 maxlength="4000"
                 rows="5"
-                class="w-full rounded-md border border-input px-3 py-2 text-sm"
+                class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm [overflow-wrap:anywhere]"
             />
             <InputError :message="form.errors.prompt" />
         </div>
 
-        <div class="grid gap-2">
-            <Label for="size">Tamanho</Label>
-            <select
-                id="size"
-                v-model="form.size"
-                class="h-9 rounded-md border border-input px-3 text-sm"
-            >
-                <option value="1024x1024">1024x1024</option>
-                <option value="1536x1024">1536x1024</option>
-                <option value="1024x1536">1024x1536</option>
-            </select>
-            <InputError :message="form.errors.size" />
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-2">
+                <Label for="size">Size</Label>
+                <select
+                    id="size"
+                    v-model="form.size"
+                    class="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                >
+                    <option value="1024x1024">1024x1024</option>
+                    <option value="1536x1024">1536x1024</option>
+                    <option value="1024x1536">1024x1536</option>
+                </select>
+                <InputError :message="form.errors.size" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="quality">Quality</Label>
+                <select
+                    id="quality"
+                    v-model="form.quality"
+                    class="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+                <InputError :message="form.errors.quality" />
+            </div>
         </div>
 
         <div class="grid gap-2">
-            <Label for="quality">Qualidade</Label>
-            <select
-                id="quality"
-                v-model="form.quality"
-                class="h-9 rounded-md border border-input px-3 text-sm"
-            >
-                <option value="low">low</option>
-                <option value="medium">medium</option>
-                <option value="high">high</option>
-            </select>
-            <InputError :message="form.errors.quality" />
-        </div>
-
-        <div class="grid gap-2">
-            <Label for="reference-image-1">Imagens de referência</Label>
+            <Label for="reference-image-1">Reference images</Label>
             <input
                 id="reference-image-1"
                 v-model="form.reference_image_1"
                 type="url"
                 placeholder="https://"
-                class="h-9 rounded-md border border-input px-3 text-sm"
+                class="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
             />
             <input
                 v-model="form.reference_image_2"
                 type="url"
                 placeholder="https://"
-                class="h-9 rounded-md border border-input px-3 text-sm"
+                class="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
             />
             <input
                 v-model="form.reference_image_3"
                 type="url"
                 placeholder="https://"
-                class="h-9 rounded-md border border-input px-3 text-sm"
+                class="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
             />
             <input
                 v-model="form.reference_image_4"
                 type="url"
                 placeholder="https://"
-                class="h-9 rounded-md border border-input px-3 text-sm"
+                class="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
             />
             <InputError :message="referenceImageError()" />
         </div>
 
-        <p>Estimado: {{ estimate.min }} – {{ estimate.max }}</p>
+        <Card>
+            <CardHeader>
+                <CardTitle>Quote</CardTitle>
+                <CardDescription>
+                    The final charge stays inside this range.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p
+                    v-if="estimating"
+                    class="flex items-center gap-2 text-sm text-muted-foreground"
+                >
+                    <Spinner />
+                    Updating quote
+                </p>
+                <p v-else class="text-lg font-semibold tabular-nums">
+                    {{ estimate.min }} – {{ estimate.max }}
+                </p>
+            </CardContent>
+        </Card>
 
         <InputError :message="balanceError()" />
 
-        <Button type="submit" :disabled="form.processing">Gerar</Button>
+        <Button type="submit" :disabled="form.processing || buying !== null">
+            <Spinner v-if="form.processing" />
+            Generate
+        </Button>
     </form>
 </template>

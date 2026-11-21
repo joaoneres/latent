@@ -76,7 +76,7 @@ it('returns to the form when the referer is the site root', function () {
         ->post(route('generations.store'), creditGenerationPayload())
         ->assertRedirect(route('generations.create'))
         ->assertSessionHasErrors([
-            'balance' => 'Saldo insuficiente. Esta geração custa até $0,6000.',
+            'balance' => 'Not enough credit. This generation costs up to $0,6000.',
         ]);
 });
 
@@ -88,7 +88,7 @@ it('refuses a generation when the balance is below the maximum', function () {
         ->post(route('generations.store'), creditGenerationPayload())
         ->assertRedirect(route('generations.create'))
         ->assertSessionHasErrors([
-            'balance' => 'Saldo insuficiente. Esta geração custa até $0,6000.',
+            'balance' => 'Not enough credit. This generation costs up to $0,6000.',
         ]);
 
     expect(Generation::query()->count())->toBe(0)
@@ -102,7 +102,7 @@ it('returns the hold when the generation fails', function () {
     $this->actingAs($user)->post(route('generations.store'), creditGenerationPayload());
 
     $generation = Generation::query()->whereBelongsTo($user)->firstOrFail();
-    app(ApplyGenerationState::class)->fail($generation, 'network_error', 'Pixelforge não respondeu.');
+    app(ApplyGenerationState::class)->fail($generation, 'network_error', 'Pixelforge did not respond.');
 
     expect(app(CreditLedger::class)->balanceNano($user))->toBe(1_000_000_000)
         ->and(CreditTransaction::query()->where('type', 'release')->count())->toBe(1)

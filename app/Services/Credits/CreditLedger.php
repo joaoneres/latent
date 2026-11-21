@@ -31,7 +31,7 @@ final class CreditLedger
     public function purchase(User $user, int $amountNano): void
     {
         if ($amountNano !== 1_000_000_000 && $amountNano !== 5_000_000_000) {
-            throw new InvalidArgumentException('O valor da compra é inválido.');
+            throw new InvalidArgumentException('The purchase amount is invalid.');
         }
 
         CreditTransaction::query()->create([
