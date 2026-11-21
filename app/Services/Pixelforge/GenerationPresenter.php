@@ -10,7 +10,7 @@ final class GenerationPresenter
     public function __construct(private MoneyFormatter $formatter) {}
 
     /**
-     * @return array{id: int, prompt: string, status: string, status_label: string, amount: string, image_url: string|null, size: string, quality: string, created_at: string, error_message: string|null}
+     * @return array{id: int, prompt: string, status: string, status_label: string, estimate: string, charge: string|null, image_url: string|null, size: string, quality: string, created_at: string, error_message: string|null}
      */
     public function present(Generation $generation): array
     {
@@ -19,7 +19,8 @@ final class GenerationPresenter
             'prompt' => $generation->prompt,
             'status' => $generation->status->value,
             'status_label' => $this->statusLabel($generation->status),
-            'amount' => $this->formatter->format($this->amountNano($generation)),
+            'estimate' => $this->formatter->format($generation->estimated_charge_nano),
+            'charge' => $this->charge($generation),
             'image_url' => $this->imageUrl($generation),
             'size' => $generation->size,
             'quality' => $this->qualityLabel($generation->quality),
@@ -49,13 +50,13 @@ final class GenerationPresenter
         };
     }
 
-    private function amountNano(Generation $generation): int
+    private function charge(Generation $generation): ?string
     {
-        if ($generation->status === GenerationStatus::Succeeded || $generation->status === GenerationStatus::Failed) {
-            return $generation->charge_nano ?? 0;
+        if ($generation->status !== GenerationStatus::Succeeded && $generation->status !== GenerationStatus::Failed) {
+            return null;
         }
 
-        return $generation->estimated_charge_nano;
+        return $this->formatter->format($generation->charge_nano ?? 0);
     }
 
     private function imageUrl(Generation $generation): ?string

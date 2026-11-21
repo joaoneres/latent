@@ -3,7 +3,8 @@ export type GenerationRow = {
     prompt: string;
     status: string;
     status_label: string;
-    amount: string;
+    estimate: string;
+    charge: string | null;
     image_url: string | null;
     size: string;
     quality: string;
