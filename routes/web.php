@@ -17,6 +17,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('generations/create', [GenerationController::class, 'create'])->name('generations.create');
     Route::post('generations', [GenerationController::class, 'store'])->name('generations.store');
     Route::post('credits', [CreditController::class, 'store'])->name('credits.store');
+    Route::get('reports/download', [AdminReportController::class, 'download'])->middleware('can:admin')->name('reports.download');
     Route::get('reports', [AdminReportController::class, 'index'])->middleware('can:admin')->name('reports.index');
 });
 
