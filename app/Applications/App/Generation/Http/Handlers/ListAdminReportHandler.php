@@ -2,6 +2,7 @@
 
 namespace App\Applications\App\Generation\Http\Handlers;
 
+use App\Applications\Http\HandlesHttpRequest;
 use App\Models\Generation;
 use App\Models\User;
 use App\Services\Pixelforge\AdminReportFilters;
@@ -11,7 +12,7 @@ use App\Services\Pixelforge\UsageReport;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 
-class ListAdminReportHandler
+class ListAdminReportHandler implements HandlesHttpRequest
 {
     /** @var Collection<int, Generation> */
     private Collection $completed;
@@ -20,17 +21,18 @@ class ListAdminReportHandler
     private array $filters;
 
     public function __construct(
+        private Request $request,
         private MoneyFormatter $formatter,
         private UsageReport $usage,
         private AdminReportLines $lines,
         private AdminReportFilters $filtersReader,
     ) {}
 
-    public function handle(Request $request): void
+    public function handle(): void
     {
-        $this->readFilters($request);
+        $this->readFilters($this->request);
         $this->load();
-        $this->publish($request);
+        $this->publish($this->request);
     }
 
     private function readFilters(Request $request): void

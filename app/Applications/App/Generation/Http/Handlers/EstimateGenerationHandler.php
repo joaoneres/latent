@@ -2,22 +2,24 @@
 
 namespace App\Applications\App\Generation\Http\Handlers;
 
+use App\Applications\Http\HandlesHttpRequest;
 use App\Services\Pixelforge\MoneyFormatter;
 use App\Services\Pixelforge\PricingCalculator;
 use App\Services\Pixelforge\PricingCatalog;
 use Illuminate\Http\Request;
 
-class EstimateGenerationHandler
+class EstimateGenerationHandler implements HandlesHttpRequest
 {
     public function __construct(
+        private Request $request,
         private PricingCatalog $pricing,
         private PricingCalculator $calculator,
         private MoneyFormatter $formatter,
     ) {}
 
-    public function handle(Request $request): void
+    public function handle(): void
     {
-        $this->publish($request);
+        $this->publish($this->request);
     }
 
     private function publish(Request $request): void

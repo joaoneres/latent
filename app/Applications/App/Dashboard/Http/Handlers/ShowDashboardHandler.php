@@ -2,6 +2,7 @@
 
 namespace App\Applications\App\Dashboard\Http\Handlers;
 
+use App\Applications\Http\HandlesHttpRequest;
 use App\Enums\GenerationStatus;
 use App\Models\Generation;
 use App\Models\User;
@@ -11,7 +12,7 @@ use App\Services\Pixelforge\MoneyFormatter;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 
-class ShowDashboardHandler
+class ShowDashboardHandler implements HandlesHttpRequest
 {
     private User $user;
 
@@ -19,16 +20,17 @@ class ShowDashboardHandler
     private Collection $generations;
 
     public function __construct(
+        private Request $request,
         private CreditLedger $ledger,
         private MoneyFormatter $formatter,
         private GenerationPresenter $presenter,
     ) {}
 
-    public function handle(Request $request): void
+    public function handle(): void
     {
-        $this->loadUser($request);
+        $this->loadUser($this->request);
         $this->loadGenerations();
-        $this->publish($request);
+        $this->publish($this->request);
     }
 
     private function loadUser(Request $request): void

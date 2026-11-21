@@ -2,22 +2,26 @@
 
 namespace App\Applications\App\Generation\Http\Handlers;
 
+use App\Applications\Http\HandlesHttpRequest;
 use App\Models\User;
 use App\Services\Pixelforge\GenerationPresenter;
 use Illuminate\Http\Request;
 
-class ListGenerationsHandler
+class ListGenerationsHandler implements HandlesHttpRequest
 {
     private int $perPage = 20;
 
     private ?string $cursor = null;
 
-    public function __construct(private GenerationPresenter $presenter) {}
+    public function __construct(
+        private Request $request,
+        private GenerationPresenter $presenter,
+    ) {}
 
-    public function handle(Request $request): void
+    public function handle(): void
     {
-        $this->readQuery($request);
-        $this->publish($request);
+        $this->readQuery($this->request);
+        $this->publish($this->request);
     }
 
     private function readQuery(Request $request): void

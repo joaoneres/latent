@@ -11,7 +11,7 @@ class DashboardController extends Controller
 {
     public function index(Request $request, ShowDashboardHandler $handler): Response
     {
-        $handler->handle($request);
+        $handler->handle();
 
         return Inertia::render('Dashboard', [
             'dashboard' => $request->attributes->get('dashboard'),

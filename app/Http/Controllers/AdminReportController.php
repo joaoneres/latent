@@ -13,7 +13,7 @@ class AdminReportController extends Controller
 {
     public function index(Request $request, ListAdminReportHandler $handler): Response
     {
-        $handler->handle($request);
+        $handler->handle();
 
         return Inertia::render('Reports/Index', [
             'summary' => $request->attributes->get('summary'),
@@ -26,7 +26,7 @@ class AdminReportController extends Controller
 
     public function download(Request $request, DownloadAdminReportHandler $handler): StreamedResponse
     {
-        $handler->handle($request);
+        $handler->handle();
         /** @var list<array<string, int|string>> $lines */
         $lines = $request->attributes->get('lines');
 
