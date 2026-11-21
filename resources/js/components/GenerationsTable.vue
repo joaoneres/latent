@@ -159,52 +159,87 @@ function openPreview(generation: GenerationRow): void {
     <Dialog :open="preview !== null" @update:open="closePreview">
         <DialogContent
             v-if="preview"
-            class="flex max-h-[calc(100dvh-2rem)] min-w-0 flex-col overflow-hidden sm:max-w-3xl"
+            class="flex max-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-4 overflow-hidden sm:max-w-4xl"
         >
-            <div class="min-h-0 min-w-0 flex-1 overflow-y-auto pr-6">
-                <DialogHeader>
-                    <DialogTitle>Generation</DialogTitle>
-                    <DialogDescription class="[overflow-wrap:anywhere]">
-                        {{ preview.prompt }}
-                    </DialogDescription>
-                </DialogHeader>
-                <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                        <dt class="text-muted-foreground">Status</dt>
-                        <dd>{{ preview.status_label }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-muted-foreground">Charge</dt>
-                        <dd class="tabular-nums">{{ preview.amount }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-muted-foreground">Size</dt>
-                        <dd>{{ preview.size }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-muted-foreground">Quality</dt>
-                        <dd>{{ preview.quality }}</dd>
-                    </div>
-                    <div class="col-span-2">
-                        <dt class="text-muted-foreground">Created</dt>
-                        <dd>{{ preview.created_at }}</dd>
-                    </div>
-                </dl>
-                <p
-                    v-if="preview.status === 'failed' && preview.error_message"
-                    class="mt-4 text-sm text-muted-foreground [overflow-wrap:anywhere]"
+            <DialogHeader class="shrink-0 pr-8">
+                <DialogTitle>Generation</DialogTitle>
+                <DialogDescription class="sr-only">
+                    {{ preview.status_label }}, {{ preview.size }},
+                    {{ preview.quality }}
+                </DialogDescription>
+            </DialogHeader>
+
+            <div
+                class="grid min-h-0 gap-4 overflow-y-auto pr-1 sm:grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)]"
+            >
+                <div
+                    class="flex min-h-56 items-center justify-center overflow-hidden rounded-lg bg-muted"
                 >
-                    {{ preview.error_message }}
-                </p>
-                <img
-                    v-if="preview.image_url !== null"
-                    :src="preview.image_url"
-                    alt="Generated image"
-                    class="mt-4 block h-auto max-h-[60vh] w-full max-w-full rounded-md bg-muted object-contain"
-                />
-                <p v-else class="mt-4 text-sm text-muted-foreground">
-                    No image
-                </p>
+                    <img
+                        v-if="preview.image_url !== null"
+                        :src="preview.image_url"
+                        alt="Generated image"
+                        class="max-h-[min(58vh,32rem)] w-full object-contain"
+                    />
+                    <p v-else class="px-6 text-sm text-muted-foreground">
+                        No image
+                    </p>
+                </div>
+
+                <div class="flex min-w-0 flex-col gap-4">
+                    <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                        <div>
+                            <dt class="text-muted-foreground">Status</dt>
+                            <dd class="mt-1">
+                                <Badge
+                                    :variant="
+                                        preview.status === 'failed'
+                                            ? 'destructive'
+                                            : preview.status === 'succeeded'
+                                              ? 'default'
+                                              : 'secondary'
+                                    "
+                                >
+                                    {{ preview.status_label }}
+                                </Badge>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-muted-foreground">Charge</dt>
+                            <dd class="mt-1 tabular-nums">{{ preview.amount }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-muted-foreground">Size</dt>
+                            <dd class="mt-1">{{ preview.size }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-muted-foreground">Quality</dt>
+                            <dd class="mt-1">{{ preview.quality }}</dd>
+                        </div>
+                        <div class="col-span-2">
+                            <dt class="text-muted-foreground">Created</dt>
+                            <dd class="mt-1">{{ preview.created_at }}</dd>
+                        </div>
+                    </dl>
+
+                    <div class="min-w-0">
+                        <p class="text-xs text-muted-foreground">Prompt</p>
+                        <p
+                            class="mt-1 max-h-36 overflow-y-auto rounded-md border bg-muted/40 p-3 text-sm leading-relaxed [overflow-wrap:anywhere]"
+                        >
+                            {{ preview.prompt }}
+                        </p>
+                    </div>
+
+                    <p
+                        v-if="
+                            preview.status === 'failed' && preview.error_message
+                        "
+                        class="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm [overflow-wrap:anywhere]"
+                    >
+                        {{ preview.error_message }}
+                    </p>
+                </div>
             </div>
         </DialogContent>
     </Dialog>
