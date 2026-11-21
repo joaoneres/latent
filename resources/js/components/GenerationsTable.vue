@@ -157,48 +157,55 @@ function openPreview(generation: GenerationRow): void {
     </div>
 
     <Dialog :open="preview !== null" @update:open="closePreview">
-        <DialogContent v-if="preview" class="sm:max-w-3xl">
-            <DialogHeader>
-                <DialogTitle>Generation</DialogTitle>
-                <DialogDescription class="[overflow-wrap:anywhere]">
-                    {{ preview.prompt }}
-                </DialogDescription>
-            </DialogHeader>
-            <dl class="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                    <dt class="text-muted-foreground">Status</dt>
-                    <dd>{{ preview.status_label }}</dd>
-                </div>
-                <div>
-                    <dt class="text-muted-foreground">Charge</dt>
-                    <dd class="tabular-nums">{{ preview.amount }}</dd>
-                </div>
-                <div>
-                    <dt class="text-muted-foreground">Size</dt>
-                    <dd>{{ preview.size }}</dd>
-                </div>
-                <div>
-                    <dt class="text-muted-foreground">Quality</dt>
-                    <dd>{{ preview.quality }}</dd>
-                </div>
-                <div class="col-span-2">
-                    <dt class="text-muted-foreground">Created</dt>
-                    <dd>{{ preview.created_at }}</dd>
-                </div>
-            </dl>
-            <p
-                v-if="preview.status === 'failed' && preview.error_message"
-                class="text-sm text-muted-foreground [overflow-wrap:anywhere]"
-            >
-                {{ preview.error_message }}
-            </p>
-            <img
-                v-if="preview.image_url !== null"
-                :src="preview.image_url"
-                alt="Generated image"
-                class="max-h-[70vh] w-full rounded-md bg-muted object-contain"
-            />
-            <p v-else class="text-sm text-muted-foreground">No image</p>
+        <DialogContent
+            v-if="preview"
+            class="flex max-h-[calc(100dvh-2rem)] min-w-0 flex-col overflow-hidden sm:max-w-3xl"
+        >
+            <div class="min-h-0 min-w-0 flex-1 overflow-y-auto pr-6">
+                <DialogHeader>
+                    <DialogTitle>Generation</DialogTitle>
+                    <DialogDescription class="[overflow-wrap:anywhere]">
+                        {{ preview.prompt }}
+                    </DialogDescription>
+                </DialogHeader>
+                <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                        <dt class="text-muted-foreground">Status</dt>
+                        <dd>{{ preview.status_label }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-muted-foreground">Charge</dt>
+                        <dd class="tabular-nums">{{ preview.amount }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-muted-foreground">Size</dt>
+                        <dd>{{ preview.size }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-muted-foreground">Quality</dt>
+                        <dd>{{ preview.quality }}</dd>
+                    </div>
+                    <div class="col-span-2">
+                        <dt class="text-muted-foreground">Created</dt>
+                        <dd>{{ preview.created_at }}</dd>
+                    </div>
+                </dl>
+                <p
+                    v-if="preview.status === 'failed' && preview.error_message"
+                    class="mt-4 text-sm text-muted-foreground [overflow-wrap:anywhere]"
+                >
+                    {{ preview.error_message }}
+                </p>
+                <img
+                    v-if="preview.image_url !== null"
+                    :src="preview.image_url"
+                    alt="Generated image"
+                    class="mt-4 block h-auto max-h-[60vh] w-full max-w-full rounded-md bg-muted object-contain"
+                />
+                <p v-else class="mt-4 text-sm text-muted-foreground">
+                    No image
+                </p>
+            </div>
         </DialogContent>
     </Dialog>
 </template>
