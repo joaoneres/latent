@@ -67,7 +67,7 @@ class SubmitGeneration implements ShouldQueue
             'quality' => $this->generation->quality,
             'reference_images' => $this->generation->reference_images ?? [],
             'metadata' => [
-                'generation_id' => (string) $this->generation->id,
+                'generation_id' => $this->generation->public_id,
             ],
         ];
     }

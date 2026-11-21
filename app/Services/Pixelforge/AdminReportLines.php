@@ -13,7 +13,7 @@ final class AdminReportLines
     public function __construct(private MoneyFormatter $formatter) {}
 
     /**
-     * @param  array{from: string|null, to: string|null, user_id: int|null, status: string|null}  $filters
+     * @param  array{from: string|null, to: string|null, user_id: string|null, status: string|null}  $filters
      * @return Collection<int, Generation>
      */
     public function completed(array $filters): Collection
@@ -30,8 +30,8 @@ final class AdminReportLines
             $query->where('completed_at', '<=', CarbonImmutable::parse($filters['to'])->endOfDay());
         }
 
-        if (is_int($filters['user_id'])) {
-            $query->where('user_id', $filters['user_id']);
+        if (is_string($filters['user_id'])) {
+            $query->whereRelation('user', 'public_id', $filters['user_id']);
         }
 
         if ($filters['status'] === GenerationStatus::Succeeded->value || $filters['status'] === GenerationStatus::Failed->value) {
@@ -46,7 +46,7 @@ final class AdminReportLines
 
     /**
      * @param  Collection<int, Generation>  $generations
-     * @return list<array{id: int, completed_at: string, user: string, email: string, status: string, prompt: string, size: string, quality: string, charged: string, provider_cost: string, profit: string, error_code: string, error_message: string, pixelforge_id: string}>
+     * @return list<array{id: string, completed_at: string, user: string, email: string, status: string, prompt: string, size: string, quality: string, charged: string, provider_cost: string, profit: string, error_code: string, error_message: string, pixelforge_id: string}>
      */
     public function present(Collection $generations): array
     {
@@ -59,7 +59,7 @@ final class AdminReportLines
             $cost = $generation->provider_cost_nano ?? 0;
 
             $lines[] = [
-                'id' => $generation->id,
+                'id' => $generation->public_id,
                 'completed_at' => $completedAt === null ? '' : $completedAt->utc()->format('Y-m-d H:i:s'),
                 'user' => $user === null ? '' : $user->name,
                 'email' => $user === null ? '' : $user->email,

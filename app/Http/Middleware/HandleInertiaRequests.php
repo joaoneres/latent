@@ -71,9 +71,11 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
-        return [
-            ...$user->toArray(),
-            'is_admin' => $user->is_admin,
-        ];
+        $shared = $user->toArray();
+        unset($shared['public_id']);
+        $shared['id'] = $user->public_id;
+        $shared['is_admin'] = $user->is_admin;
+
+        return $shared;
     }
 }
