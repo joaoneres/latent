@@ -11,7 +11,7 @@ Route::inertia('/', 'Welcome')->name('home');
 
 Route::post('webhooks/pixelforge', [PixelforgeWebhookController::class, 'store'])->name('webhooks.pixelforge');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('generations', [GenerationController::class, 'index'])->name('generations.index');
     Route::get('generations/create', [GenerationController::class, 'create'])->name('generations.create');

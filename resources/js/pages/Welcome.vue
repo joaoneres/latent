@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
-import { dashboard, login, register } from '@/routes';
+import { dashboard, login } from '@/routes';
 
 const page = usePage();
 </script>
@@ -16,14 +16,9 @@ const page = usePage();
                 <Button v-if="page.props.auth.user" as-child>
                     <Link :href="dashboard()">Dashboard</Link>
                 </Button>
-                <template v-else>
-                    <Button variant="ghost" as-child>
-                        <Link :href="login()">Log in</Link>
-                    </Button>
-                    <Button as-child>
-                        <Link :href="register()">Register</Link>
-                    </Button>
-                </template>
+                <Button v-else as-child>
+                    <Link :href="login()">Log in</Link>
+                </Button>
             </nav>
         </header>
 
