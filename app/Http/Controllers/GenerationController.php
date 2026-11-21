@@ -19,6 +19,7 @@ class GenerationController extends Controller
 
         return Inertia::render('Generations/Index', [
             'generations' => $request->attributes->get('generations'),
+            'pagination' => $request->attributes->get('pagination'),
         ]);
     }
 

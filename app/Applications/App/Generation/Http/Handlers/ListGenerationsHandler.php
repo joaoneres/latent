@@ -8,31 +8,53 @@ use Illuminate\Http\Request;
 
 class ListGenerationsHandler
 {
+    private int $perPage = 20;
+
+    private ?string $cursor = null;
+
     public function __construct(private GenerationPresenter $presenter) {}
 
     public function handle(Request $request): void
     {
+        $this->readQuery($request);
         $this->publish($request);
+    }
+
+    private function readQuery(Request $request): void
+    {
+        $perPage = $request->query('per_page', 20);
+        $perPage = is_numeric($perPage) ? (int) $perPage : 20;
+
+        if ($perPage < 1) {
+            $perPage = 20;
+        }
+
+        $this->perPage = min($perPage, 100);
+
+        $cursor = $request->query('cursor');
+        $this->cursor = is_string($cursor) && $cursor !== '' ? $cursor : null;
     }
 
     private function publish(Request $request): void
     {
-        $request->attributes->set('generations', $this->rows($request));
-    }
-
-    /**
-     * @return list<array{id: int, prompt: string, status: string, status_label: string, amount: string, image_url: string|null, size: string, quality: string, created_at: string, error_message: string|null}>
-     */
-    private function rows(Request $request): array
-    {
         /** @var User $user */
         $user = $request->user();
-        $generations = [];
+        $query = $user->generations()->orderByDesc('created_at')->orderByDesc('id');
+        $total = (clone $query)->count();
+        $paginator = $query->cursorPaginate($this->perPage, cursor: $this->cursor);
+        $rows = [];
 
-        foreach ($user->generations()->latest()->get() as $generation) {
-            $generations[] = $this->presenter->present($generation);
+        foreach ($paginator->items() as $generation) {
+            $rows[] = $this->presenter->present($generation);
         }
 
-        return $generations;
+        $request->attributes->set('generations', $rows);
+        $request->attributes->set('pagination', [
+            'type' => 'cursor',
+            'total' => $total,
+            'per_page' => $paginator->perPage(),
+            'next_cursor' => $paginator->nextCursor()?->encode(),
+            'prev_cursor' => $paginator->previousCursor()?->encode(),
+        ]);
     }
 }

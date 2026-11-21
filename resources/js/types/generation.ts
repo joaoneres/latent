@@ -11,6 +11,14 @@ export type GenerationRow = {
     error_message: string | null;
 };
 
+export type GenerationPagination = {
+    type: 'cursor';
+    total: number;
+    per_page: number;
+    next_cursor: string | null;
+    prev_cursor: string | null;
+};
+
 export type DashboardSnapshot = {
     balance: string;
     in_progress: number;
