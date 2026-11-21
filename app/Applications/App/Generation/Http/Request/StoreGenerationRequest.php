@@ -13,6 +13,11 @@ class StoreGenerationRequest extends FormRequest
         return true;
     }
 
+    protected function getRedirectUrl(): string
+    {
+        return route('generations.create');
+    }
+
     protected function prepareForValidation(): void
     {
         $images = $this->input('reference_images', []);

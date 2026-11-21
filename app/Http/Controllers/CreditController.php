@@ -20,6 +20,6 @@ class CreditController extends Controller
         $user = $request->user();
         $handler->handle($user, (int) $validated['amount_nano']);
 
-        return back();
+        return redirect()->route('generations.create');
     }
 }

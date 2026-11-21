@@ -68,6 +68,18 @@ it('holds the estimated maximum when the balance covers it', function () {
         ->and(app(CreditLedger::class)->balanceNano($user))->toBe(400_000_000);
 });
 
+it('returns to the form when the referer is the site root', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->from('/')
+        ->post(route('generations.store'), creditGenerationPayload())
+        ->assertRedirect(route('generations.create'))
+        ->assertSessionHasErrors([
+            'balance' => 'Saldo insuficiente. Esta geração custa até $0,6000.',
+        ]);
+});
+
 it('refuses a generation when the balance is below the maximum', function () {
     $user = User::factory()->create();
 
