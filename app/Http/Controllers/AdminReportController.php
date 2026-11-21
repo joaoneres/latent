@@ -11,8 +11,10 @@ class AdminReportController extends Controller
 {
     public function index(Request $request, ListAdminReportHandler $handler): Response
     {
+        $handler->handle($request);
+
         return Inertia::render('Reports/Index', [
-            'days' => $handler->handle($request),
+            'days' => $request->attributes->get('days'),
         ]);
     }
 }

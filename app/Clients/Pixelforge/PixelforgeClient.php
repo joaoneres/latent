@@ -5,7 +5,6 @@ namespace App\Clients\Pixelforge;
 use App\Exceptions\ClientException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
@@ -19,21 +18,10 @@ class PixelforgeClient
     public function send(string $method, string $url, array $options = []): Response
     {
         try {
-            $response = $this->request()->send($method, $url, $options);
+            return $this->request()->send($method, $url, $options);
         } catch (ConnectionException $exception) {
             throw new ClientException($this->redact($exception->getMessage()), $exception);
         }
-
-        if (! $response->successful()) {
-            $body = $this->redact($response->body());
-
-            throw new ClientException(
-                "HTTP request returned status code {$response->status()}:\n{$body}",
-                $response->toException() ?? new RequestException($response),
-            );
-        }
-
-        return $response;
     }
 
     /**
@@ -43,9 +31,7 @@ class PixelforgeClient
      */
     public function pricing(): array
     {
-        $payload = $this->send('GET', 'pricing')->json();
-
-        return is_array($payload) ? $payload : [];
+        return $this->json($this->send('GET', 'pricing'));
     }
 
     /**
@@ -70,23 +56,18 @@ class PixelforgeClient
     }
 
     /**
-     * @throws ClientException
-     */
-    /**
      * @return array<string, mixed>
      *
      * @throws ClientException
      */
     public function usage(string $startDate, string $endDate): array
     {
-        $payload = $this->send('GET', 'usage', [
+        return $this->json($this->send('GET', 'usage', [
             'query' => [
                 'start_date' => $startDate,
                 'end_date' => $endDate,
             ],
-        ])->json();
-
-        return is_array($payload) ? $payload : [];
+        ]));
     }
 
     /**
@@ -99,6 +80,24 @@ class PixelforgeClient
         } catch (ConnectionException $exception) {
             throw new ClientException($this->redact($exception->getMessage()), $exception);
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws ClientException
+     */
+    private function json(Response $response): array
+    {
+        if (! $response->successful()) {
+            throw new ClientException($this->redact(
+                "HTTP request returned status code {$response->status()}:\n{$response->body()}",
+            ));
+        }
+
+        $payload = $response->json();
+
+        return is_array($payload) ? $payload : [];
     }
 
     private function request(): PendingRequest

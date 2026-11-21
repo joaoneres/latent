@@ -22,7 +22,14 @@ class StoreGenerationHandler
         private MoneyFormatter $formatter,
     ) {}
 
-    public function handle(StoreGenerationRequest $request): ?string
+    public function handle(StoreGenerationRequest $request): void
+    {
+        $this->resolveEstimate($request);
+        $this->reserve($request);
+        $this->dispatchJob($request);
+    }
+
+    private function resolveEstimate(StoreGenerationRequest $request): void
     {
         /** @var User $user */
         $user = $request->user();
@@ -37,36 +44,66 @@ class StoreGenerationHandler
             count($referenceImages),
             $pricing,
         );
-        $maximum = $estimate['max'];
 
-        $generationId = DB::transaction(function () use ($user, $validated, $referenceImages, $maximum): ?int {
-            $locked = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+        $request->attributes->set('generation_input', [
+            'user_id' => $user->getKey(),
+            'prompt' => $validated['prompt'],
+            'size' => $validated['size'],
+            'quality' => $validated['quality'],
+            'reference_images' => $referenceImages,
+            'maximum' => $estimate['max'],
+        ]);
+    }
 
-            if ($this->ledger->balanceNano($locked) < $maximum) {
+    private function reserve(StoreGenerationRequest $request): void
+    {
+        /** @var array{user_id: int, prompt: string, size: string, quality: string, reference_images: list<string>, maximum: int} $input */
+        $input = $request->attributes->get('generation_input');
+
+        $generationId = DB::transaction(function () use ($input): ?int {
+            $locked = User::query()->whereKey($input['user_id'])->lockForUpdate()->firstOrFail();
+
+            if ($this->ledger->balanceNano($locked) < $input['maximum']) {
                 return null;
             }
 
             $generation = $locked->generations()->create([
-                'prompt' => $validated['prompt'],
-                'size' => $validated['size'],
-                'quality' => $validated['quality'],
-                'reference_images' => $referenceImages,
+                'prompt' => $input['prompt'],
+                'size' => $input['size'],
+                'quality' => $input['quality'],
+                'reference_images' => $input['reference_images'],
                 'idempotency_key' => (string) Str::uuid(),
                 'status' => GenerationStatus::Pending,
-                'estimated_charge_nano' => $maximum,
+                'estimated_charge_nano' => $input['maximum'],
             ]);
 
-            $this->ledger->hold($locked, $generation, $maximum);
+            $this->ledger->hold($locked, $generation, $input['maximum']);
 
             return $generation->id;
         });
 
         if ($generationId === null) {
-            return 'Saldo insuficiente. Esta geração custa até '.$this->formatter->format($maximum).'.';
+            $request->attributes->set(
+                'balance_error',
+                'Saldo insuficiente. Esta geração custa até '.$this->formatter->format($input['maximum']).'.',
+            );
+
+            return;
         }
 
-        SubmitGeneration::dispatch($generationId);
+        $request->attributes->set('generation_id', $generationId);
+    }
 
-        return null;
+    private function dispatchJob(StoreGenerationRequest $request): void
+    {
+        if (is_string($request->attributes->get('balance_error'))) {
+            return;
+        }
+
+        $generationId = $request->attributes->get('generation_id');
+
+        if (is_int($generationId)) {
+            SubmitGeneration::dispatch($generationId);
+        }
     }
 }

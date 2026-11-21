@@ -15,21 +15,26 @@ class GenerationController extends Controller
 {
     public function index(Request $request, ListGenerationsHandler $handler): Response
     {
+        $handler->handle($request);
+
         return Inertia::render('Generations/Index', [
-            'generations' => $handler->handle($request),
+            'generations' => $request->attributes->get('generations'),
         ]);
     }
 
     public function create(Request $request, EstimateGenerationHandler $handler): Response
     {
+        $handler->handle($request);
+
         return Inertia::render('Generations/Create', [
-            'estimate' => $handler->handle($request),
+            'estimate' => $request->attributes->get('estimate'),
         ]);
     }
 
     public function store(StoreGenerationRequest $request, StoreGenerationHandler $handler): RedirectResponse
     {
-        $message = $handler->handle($request);
+        $handler->handle($request);
+        $message = $request->attributes->get('balance_error');
 
         if (is_string($message)) {
             return back()->withErrors([
