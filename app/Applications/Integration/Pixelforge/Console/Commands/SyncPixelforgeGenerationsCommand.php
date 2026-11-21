@@ -8,6 +8,7 @@ use App\Exceptions\ClientException;
 use App\Models\Generation;
 use App\Services\Pixelforge\ApplyGenerationState;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Log;
 
@@ -15,9 +16,34 @@ class SyncPixelforgeGenerationsCommand extends Command
 {
     protected $signature = 'pixelforge:sync';
 
+    private PixelforgeClient $client;
+
+    private ApplyGenerationState $state;
+
     public function handle(PixelforgeClient $client, ApplyGenerationState $state): int
     {
-        $generations = Generation::query()
+        $this->client = $client;
+        $this->state = $state;
+        $this->sync();
+
+        return self::SUCCESS;
+    }
+
+    private function sync(): void
+    {
+        foreach ($this->pending() as $generation) {
+            if (! $this->fetch($generation)) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * @return Collection<int, Generation>
+     */
+    private function pending(): Collection
+    {
+        return Generation::query()
             ->whereNotNull('pixelforge_id')
             ->whereNotIn('status', [
                 GenerationStatus::Succeeded->value,
@@ -26,50 +52,76 @@ class SyncPixelforgeGenerationsCommand extends Command
             ->where('submitted_at', '<', now()->subMinutes(2))
             ->orderBy('id')
             ->get();
+    }
 
-        foreach ($generations as $generation) {
-            $pixelforgeId = $generation->pixelforge_id;
+    private function fetch(Generation $generation): bool
+    {
+        $pixelforgeId = $generation->pixelforge_id;
 
-            if (! is_string($pixelforgeId) || $pixelforgeId === '') {
-                continue;
-            }
-
-            try {
-                $response = $client->generation($pixelforgeId);
-            } catch (ClientException) {
-                continue;
-            }
-
-            if ($response->status() === 200) {
-                $object = $response->json();
-
-                if (is_array($object)) {
-                    $state->fromProvider($generation, $this->providerObject($object));
-                }
-
-                continue;
-            }
-
-            if ($response->status() === 404) {
-                $state->fail($generation, 'not_found', $this->notFoundMessage($response));
-
-                continue;
-            }
-
-            if ($response->status() === 429 || $response->status() === 503) {
-                break;
-            }
-
-            if ($response->status() === 401) {
-                Log::error('Pixelforge authentication failed.', [
-                    'generation_id' => $generation->id,
-                ]);
-
-                break;
-            }
+        if (! is_string($pixelforgeId) || $pixelforgeId === '') {
+            return true;
         }
 
-        return self::SUCCESS;
+        try {
+            $response = $this->client->generation($pixelforgeId);
+        } catch (ClientException) {
+            return true;
+        }
+
+        return $this->applyResponse($generation, $response);
+    }
+
+    private function applyResponse(Generation $generation, Response $response): bool
+    {
+        if ($response->status() === 200) {
+            $this->accept($generation, $response);
+
+            return true;
+        }
+
+        if ($response->status() === 404) {
+            $this->failMissing($generation, $response);
+
+            return true;
+        }
+
+        if ($response->status() === 429 || $response->status() === 503) {
+            return $this->stopForLimit();
+        }
+
+        if ($response->status() === 401) {
+            return $this->stopForAuthentication($generation);
+        }
+
+        return true;
+    }
+
+    private function accept(Generation $generation, Response $response): void
+    {
+        $object = $response->json();
+
+        if (is_array($object)) {
+            $this->state->fromProvider($generation, $this->providerObject($object));
+        }
+    }
+
+    private function failMissing(Generation $generation, Response $response): void
+    {
+        $this->state->fail($generation, 'not_found', $this->notFoundMessage($response));
+    }
+
+    private function stopForLimit(): bool
+    {
+        return false;
+    }
+
+    private function stopForAuthentication(Generation $generation): bool
+    {
+        Log::error('Pixelforge authentication failed.', [
+            'generation_id' => $generation->id,
+        ]);
+
+        return false;
     }
 
     private function notFoundMessage(Response $response): string
