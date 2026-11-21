@@ -65,7 +65,9 @@ defineOptions({
                 </p>
             </div>
 
-            <table class="w-full min-w-[640px] border-collapse text-left text-sm">
+            <table
+                class="w-full min-w-[640px] border-collapse text-left text-sm"
+            >
                 <thead
                     class="border-b bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase"
                 >
@@ -79,7 +81,9 @@ defineOptions({
                 <tbody>
                     <tr class="border-b font-medium">
                         <td class="px-4 py-3">Day total</td>
-                        <td class="px-4 py-3 tabular-nums">{{ day.charged }}</td>
+                        <td class="px-4 py-3 tabular-nums">
+                            {{ day.charged }}
+                        </td>
                         <td class="px-4 py-3 tabular-nums">
                             {{ day.provider_cost }}
                         </td>
@@ -97,7 +101,9 @@ defineOptions({
                         <td class="px-4 py-3 tabular-nums">
                             {{ user.provider_cost }}
                         </td>
-                        <td class="px-4 py-3 tabular-nums">{{ user.profit }}</td>
+                        <td class="px-4 py-3 tabular-nums">
+                            {{ user.profit }}
+                        </td>
                     </tr>
                 </tbody>
             </table>
