@@ -3,20 +3,44 @@
 namespace App\Applications\App\Generation\Http\Handlers;
 
 use App\Models\Generation;
+use App\Models\User;
+use App\Services\Pixelforge\AdminReportFilters;
+use App\Services\Pixelforge\AdminReportLines;
 use App\Services\Pixelforge\MoneyFormatter;
 use App\Services\Pixelforge\UsageReport;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 
 class ListAdminReportHandler
 {
+    /** @var Collection<int, Generation> */
+    private Collection $completed;
+
+    /** @var array{from: string|null, to: string|null, user_id: int|null, status: string|null} */
+    private array $filters;
+
     public function __construct(
         private MoneyFormatter $formatter,
         private UsageReport $usage,
+        private AdminReportLines $lines,
+        private AdminReportFilters $filtersReader,
     ) {}
 
     public function handle(Request $request): void
     {
+        $this->readFilters($request);
+        $this->load();
         $this->publish($request);
+    }
+
+    private function readFilters(Request $request): void
+    {
+        $this->filters = $this->filtersReader->fromRequest($request);
+    }
+
+    private function load(): void
+    {
+        $this->completed = $this->lines->completed($this->filters);
     }
 
     private function publish(Request $request): void
@@ -24,7 +48,63 @@ class ListAdminReportHandler
         $grouped = $this->group();
         $usage = $this->usage->forDates(array_keys($grouped));
 
-        $request->attributes->set('days', $this->present($grouped, $usage));
+        $request->attributes->set('days', $this->presentDays($grouped, $usage));
+        $request->attributes->set('summary', $this->summary());
+        $request->attributes->set('generations', $this->lines->present($this->completed));
+        $request->attributes->set('filters', $this->presentFilters());
+        $request->attributes->set('users', $this->users());
+    }
+
+    /**
+     * @return array{from: string, to: string, user_id: string, status: string}
+     */
+    private function presentFilters(): array
+    {
+        return [
+            'from' => $this->filters['from'] ?? '',
+            'to' => $this->filters['to'] ?? '',
+            'user_id' => $this->filters['user_id'] === null ? '' : (string) $this->filters['user_id'],
+            'status' => $this->filters['status'] ?? '',
+        ];
+    }
+
+    /**
+     * @return list<array{id: int, name: string, email: string}>
+     */
+    private function users(): array
+    {
+        $users = [];
+
+        foreach (User::query()->orderBy('name')->orderBy('id')->get(['id', 'name', 'email']) as $user) {
+            $users[] = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ];
+        }
+
+        return $users;
+    }
+
+    /**
+     * @return array{count: int, charged: string, provider_cost: string, profit: string}
+     */
+    private function summary(): array
+    {
+        $charge = 0;
+        $cost = 0;
+
+        foreach ($this->completed as $generation) {
+            $charge += $generation->charge_nano ?? 0;
+            $cost += $generation->provider_cost_nano ?? 0;
+        }
+
+        return [
+            'count' => $this->completed->count(),
+            'charged' => $this->formatter->format($charge),
+            'provider_cost' => $this->formatter->format($cost),
+            'profit' => $this->formatter->format($charge - $cost),
+        ];
     }
 
     /**
@@ -35,7 +115,7 @@ class ListAdminReportHandler
         /** @var array<string, array{charge: int, cost: int, users: array<int, array{name: string, charge: int, cost: int}>}> $grouped */
         $grouped = [];
 
-        foreach (Generation::query()->with('user')->whereNotNull('completed_at')->get() as $generation) {
+        foreach ($this->completed as $generation) {
             $completedAt = $generation->completed_at;
             $user = $generation->user;
 
@@ -80,7 +160,7 @@ class ListAdminReportHandler
      * @param  array{available: bool, by_date: array<string, int>}  $usage
      * @return list<array{date: string, charged: string, provider_cost: string, profit: string, matches: bool|null, usage_cost: string|null, users: list<array{name: string, charged: string, provider_cost: string, profit: string}>}>
      */
-    private function present(array $grouped, array $usage): array
+    private function presentDays(array $grouped, array $usage): array
     {
         $days = [];
 
