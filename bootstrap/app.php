@@ -22,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('pixelforge:sync')->everyMinute();
     })
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*');
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->validateCsrfTokens(except: [
