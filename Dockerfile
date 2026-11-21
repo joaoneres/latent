@@ -36,8 +36,8 @@ FROM php:8.3-fpm-bookworm
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        nginx supervisor libzip-dev libsqlite3-dev libicu-dev \
-    && docker-php-ext-install bcmath intl pcntl pdo_sqlite opcache \
+        nginx supervisor libzip-dev libsqlite3-dev libicu-dev default-libmysqlclient-dev \
+    && docker-php-ext-install bcmath intl pcntl pdo_sqlite pdo_mysql opcache \
     && rm -f /usr/local/etc/php-fpm.d/zz-docker.conf /etc/nginx/sites-enabled/default \
     && mkdir -p /run/php /var/log/supervisor \
     && rm -rf /var/lib/apt/lists/*

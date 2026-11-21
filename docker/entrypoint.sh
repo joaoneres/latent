@@ -12,13 +12,14 @@ mkdir -p \
     database \
     /run/php
 
-touch database/database.sqlite
+if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
+    touch database/database.sqlite
+fi
 
 php artisan migrate --force
 php artisan storage:link || true
 php artisan config:cache
 php artisan view:cache
-php docker/ensure-admin.php
 
 chown -R www-data:www-data storage bootstrap/cache database public/storage
 
