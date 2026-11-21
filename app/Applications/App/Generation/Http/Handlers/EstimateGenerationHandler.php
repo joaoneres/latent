@@ -74,7 +74,7 @@ class EstimateGenerationHandler implements HandlesHttpRequest
             return ImageSize::Square->value;
         }
 
-        return ImageSize::tryFrom($size)?->value ?? ImageSize::Square->value;
+        return (ImageSize::tryFrom($size) ?? ImageSize::Square)->value;
     }
 
     private function quality(Request $request): string
@@ -85,7 +85,7 @@ class EstimateGenerationHandler implements HandlesHttpRequest
             return ImageQuality::Medium->value;
         }
 
-        return ImageQuality::tryFrom($quality)?->value ?? ImageQuality::Medium->value;
+        return (ImageQuality::tryFrom($quality) ?? ImageQuality::Medium)->value;
     }
 
     private function referenceImageCount(Request $request): int
