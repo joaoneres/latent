@@ -194,6 +194,48 @@ it('lists only the authenticated user generations', function () {
             ->where('generations.0.id', $own->id));
 });
 
+it('pages generations with a cursor', function () {
+    $user = User::factory()->create();
+    $older = makeListedGeneration($user, [
+        'prompt' => 'older',
+        'created_at' => now()->subMinute(),
+    ]);
+    $newer = makeListedGeneration($user, [
+        'prompt' => 'newer',
+        'created_at' => now(),
+    ]);
+
+    $first = $this->withoutVite()
+        ->actingAs($user)
+        ->get(route('generations.index', ['per_page' => 1]));
+
+    $first->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('generations', 1)
+            ->where('generations.0.id', $newer->id)
+            ->where('pagination.type', 'cursor')
+            ->where('pagination.total', 2)
+            ->where('pagination.per_page', 1)
+            ->where('pagination.prev_cursor', null));
+
+    $nextCursor = $first->viewData('page')['props']['pagination']['next_cursor'];
+
+    expect($nextCursor)->toBeString()->not->toBe('');
+
+    $this->withoutVite()
+        ->actingAs($user)
+        ->get(route('generations.index', [
+            'per_page' => 1,
+            'cursor' => $nextCursor,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('generations', 1)
+            ->where('generations.0.id', $older->id)
+            ->where('pagination.total', 2)
+            ->where('pagination.next_cursor', null));
+});
+
 /**
  * @param  array<string, mixed>  $attributes
  */

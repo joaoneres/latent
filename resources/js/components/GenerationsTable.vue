@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -30,16 +31,13 @@ function closePreview(open: boolean): void {
 }
 
 function openPreview(generation: GenerationRow): void {
-    if (generation.image_url === null) {
-        return;
-    }
-
     preview.value = generation;
 }
 </script>
 
 <template>
-    <div class="overflow-x-auto rounded-xl border">
+    <div class="overflow-hidden rounded-xl border">
+        <div class="overflow-x-auto">
         <table class="w-full min-w-[760px] border-collapse text-left text-sm">
             <thead
                 class="border-b bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase"
@@ -52,12 +50,13 @@ function openPreview(generation: GenerationRow): void {
                     <th class="px-4 py-3 font-medium">Quality</th>
                     <th class="px-4 py-3 font-medium">Charge</th>
                     <th class="px-4 py-3 font-medium">Created</th>
+                    <th class="px-4 py-3 text-center font-medium">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <tr v-if="generations.length === 0">
                     <td
-                        colspan="7"
+                        colspan="8"
                         class="px-4 py-10 text-center text-muted-foreground"
                     >
                         No generations yet.
@@ -140,9 +139,21 @@ function openPreview(generation: GenerationRow): void {
                     <td class="px-4 py-3 whitespace-nowrap">
                         {{ generation.created_at }}
                     </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            @click="openPreview(generation)"
+                        >
+                            View
+                        </Button>
+                    </td>
                 </tr>
             </tbody>
         </table>
+        </div>
+        <slot name="footer" />
     </div>
 
     <Dialog :open="preview !== null" @update:open="closePreview">
@@ -153,12 +164,41 @@ function openPreview(generation: GenerationRow): void {
                     {{ preview.prompt }}
                 </DialogDescription>
             </DialogHeader>
+            <dl class="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                    <dt class="text-muted-foreground">Status</dt>
+                    <dd>{{ preview.status_label }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">Charge</dt>
+                    <dd class="tabular-nums">{{ preview.amount }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">Size</dt>
+                    <dd>{{ preview.size }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">Quality</dt>
+                    <dd>{{ preview.quality }}</dd>
+                </div>
+                <div class="col-span-2">
+                    <dt class="text-muted-foreground">Created</dt>
+                    <dd>{{ preview.created_at }}</dd>
+                </div>
+            </dl>
+            <p
+                v-if="preview.status === 'failed' && preview.error_message"
+                class="text-sm text-muted-foreground [overflow-wrap:anywhere]"
+            >
+                {{ preview.error_message }}
+            </p>
             <img
                 v-if="preview.image_url !== null"
                 :src="preview.image_url"
                 alt="Generated image"
                 class="max-h-[70vh] w-full rounded-md bg-muted object-contain"
             />
+            <p v-else class="text-sm text-muted-foreground">No image</p>
         </DialogContent>
     </Dialog>
 </template>
