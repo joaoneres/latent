@@ -97,6 +97,62 @@ it('fails a generation the provider no longer has', function () {
         ->and($generation->error_message)->toBe('No such generation.');
 });
 
+it('leaves the batch open when the provider rejects the api key', function () {
+    $generation = makeSyncGeneration([
+        'pixelforge_id' => 'gen_denied',
+        'submitted_at' => now()->subMinutes(3),
+    ]);
+
+    Http::fake([
+        'https://pixelforge.test/v1/generations/gen_denied' => Http::response([
+            'error' => [
+                'code' => 'invalid_api_key',
+                'message' => 'The API key is invalid.',
+            ],
+        ], 401),
+    ]);
+
+    $this->artisan('pixelforge:sync')->assertSuccessful();
+
+    $generation->refresh();
+
+    expect($generation->status)->toBe(GenerationStatus::Queued)
+        ->and($generation->charge_nano)->toBeNull();
+});
+
+it('stops the batch when the provider asks the sync to wait', function () {
+    $limited = makeSyncGeneration([
+        'pixelforge_id' => 'gen_limited',
+        'submitted_at' => now()->subMinutes(3),
+    ]);
+    $later = makeSyncGeneration([
+        'pixelforge_id' => 'gen_later',
+        'submitted_at' => now()->subMinutes(3),
+    ]);
+
+    Http::fake([
+        'https://pixelforge.test/v1/generations/gen_limited' => Http::response([
+            'error' => [
+                'code' => 'rate_limit_exceeded',
+                'message' => 'Slow down.',
+            ],
+        ], 429),
+        'https://pixelforge.test/v1/generations/gen_later' => Http::response(syncSucceededObject(), 200),
+    ]);
+
+    $this->artisan('pixelforge:sync')->assertSuccessful();
+
+    $limited->refresh();
+    $later->refresh();
+
+    expect($limited->status)->toBe(GenerationStatus::Queued)
+        ->and($limited->charge_nano)->toBeNull()
+        ->and($later->status)->toBe(GenerationStatus::Queued)
+        ->and($later->charge_nano)->toBeNull();
+
+    Http::assertSentCount(1);
+});
+
 /**
  * @param  array<string, mixed>  $attributes
  */
