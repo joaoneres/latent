@@ -83,7 +83,7 @@ function scheduleEstimate(): void {
                 only: ['estimate'],
                 preserveState: true,
                 preserveScroll: true,
-                replace: true,
+                preserveUrl: true,
             },
         );
     }, 300);

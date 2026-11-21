@@ -32,7 +32,7 @@ class GenerationController extends Controller
         $message = $handler->handle($request);
 
         if (is_string($message)) {
-            return back()->withErrors([
+            return redirect()->route('generations.create')->withErrors([
                 'balance' => $message,
             ]);
         }
