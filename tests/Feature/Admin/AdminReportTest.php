@@ -325,14 +325,14 @@ it('filters the report by utc day, user, and status', function () {
         ->get(route('reports.index', [
             'from' => '2026-11-21',
             'to' => '2026-11-20',
-            'user_id' => $bea->id,
+            'user_id' => $bea->public_id,
             'status' => 'succeeded',
         ]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('filters.from', '2026-11-20')
             ->where('filters.to', '2026-11-21')
-            ->where('filters.user_id', (string) $bea->id)
+            ->where('filters.user_id', $bea->public_id)
             ->where('filters.status', 'succeeded')
             ->has('generations', 1)
             ->where('generations.0.prompt', 'Bea succeeded')
@@ -342,6 +342,29 @@ it('filters the report by utc day, user, and status', function () {
             ->has('days', 1)
             ->where('days.0.date', '2026-11-21')
             ->has('users', 2));
+});
+
+it('ignores a numeric user id on the report', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $bea = User::factory()->create(['name' => 'Bea']);
+    makeReportedGeneration($admin, [
+        'completed_at' => '2026-11-21 01:00:00',
+        'prompt' => 'Ada succeeded',
+    ]);
+    makeReportedGeneration($bea, [
+        'completed_at' => '2026-11-21 00:30:00',
+        'prompt' => 'Bea succeeded',
+    ]);
+
+    $this->withoutVite()
+        ->actingAs($admin)
+        ->get(route('reports.index', [
+            'user_id' => $bea->id,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.user_id', '')
+            ->has('generations', 2));
 });
 
 it('downloads only the generations that match the filters', function () {

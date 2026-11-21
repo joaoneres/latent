@@ -11,12 +11,12 @@ final class GenerationPresenter
     public function __construct(private MoneyFormatter $formatter) {}
 
     /**
-     * @return array{id: int, prompt: string, status: string, status_label: string, estimate: string, charge: string|null, image_url: string|null, size: string, quality: string, created_at: string, error_message: string|null}
+     * @return array{id: string, prompt: string, status: string, status_label: string, estimate: string, charge: string|null, image_url: string|null, size: string, quality: string, created_at: string, error_message: string|null}
      */
     public function present(Generation $generation): array
     {
         return [
-            'id' => $generation->id,
+            'id' => $generation->public_id,
             'prompt' => $generation->prompt,
             'status' => $generation->status->value,
             'status_label' => $this->statusLabel($generation->status),

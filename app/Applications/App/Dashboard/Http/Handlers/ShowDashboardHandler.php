@@ -101,7 +101,7 @@ class ShowDashboardHandler implements HandlesHttpRequest
     }
 
     /**
-     * @return list<array{id: int, prompt: string, status: string, status_label: string, estimate: string, charge: string|null, image_url: string|null, size: string, quality: string, created_at: string, error_message: string|null}>
+     * @return list<array{id: string, prompt: string, status: string, status_label: string, estimate: string, charge: string|null, image_url: string|null, size: string, quality: string, created_at: string, error_message: string|null}>
      */
     private function recent(): array
     {

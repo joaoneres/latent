@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Eloquent\HasUlid;
 use App\Enums\GenerationStatus;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property int $id
+ * @property string $public_id
  * @property int $user_id
  * @property string $prompt
  * @property string $size
@@ -44,6 +46,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class Generation extends Model
 {
+    use HasUlid;
+
     /**
      * @return BelongsTo<User, $this>
      */

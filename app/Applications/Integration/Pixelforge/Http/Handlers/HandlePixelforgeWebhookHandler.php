@@ -157,11 +157,23 @@ class HandlePixelforgeWebhookHandler implements HandlesHttpRequest
             return null;
         }
 
+        $localId = (string) $localId;
+
         if ($localId === '') {
             return null;
         }
 
-        $generation = Generation::query()->find($localId);
+        $generation = Generation::query()->where('public_id', $localId)->first();
+
+        if ($generation instanceof Generation) {
+            return $generation;
+        }
+
+        if (preg_match('/^[1-9]\d*$/', $localId) !== 1) {
+            return null;
+        }
+
+        $generation = Generation::query()->find((int) $localId);
 
         return $generation instanceof Generation ? $generation : null;
     }

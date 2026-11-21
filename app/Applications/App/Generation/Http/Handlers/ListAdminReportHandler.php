@@ -17,7 +17,7 @@ class ListAdminReportHandler implements HandlesHttpRequest
     /** @var Collection<int, Generation> */
     private Collection $completed;
 
-    /** @var array{from: string|null, to: string|null, user_id: int|null, status: string|null} */
+    /** @var array{from: string|null, to: string|null, user_id: string|null, status: string|null} */
     private array $filters;
 
     public function __construct(
@@ -65,21 +65,21 @@ class ListAdminReportHandler implements HandlesHttpRequest
         return [
             'from' => $this->filters['from'] ?? '',
             'to' => $this->filters['to'] ?? '',
-            'user_id' => $this->filters['user_id'] === null ? '' : (string) $this->filters['user_id'],
+            'user_id' => $this->filters['user_id'] ?? '',
             'status' => $this->filters['status'] ?? '',
         ];
     }
 
     /**
-     * @return list<array{id: int, name: string, email: string}>
+     * @return list<array{id: string, name: string, email: string}>
      */
     private function users(): array
     {
         $users = [];
 
-        foreach (User::query()->orderBy('name')->orderBy('id')->get(['id', 'name', 'email']) as $user) {
+        foreach (User::query()->orderBy('name')->orderBy('id')->get(['id', 'public_id', 'name', 'email']) as $user) {
             $users[] = [
-                'id' => $user->id,
+                'id' => $user->public_id,
                 'name' => $user->name,
                 'email' => $user->email,
             ];

@@ -244,7 +244,7 @@ it('fails the fifth rate limit attempt', function () {
         ->and($generation->error_message)->toBe('Too many generations are in progress.');
 });
 
-it('omits empty reference images and sends the local id', function () {
+it('omits empty reference images and sends the public id', function () {
     Http::fake([
         'https://pixelforge.test/v1/generations' => Http::response([
             'id' => 'gen_empty',
@@ -261,7 +261,7 @@ it('omits empty reference images and sends the local id', function () {
 
         return $request->url() === 'https://pixelforge.test/v1/generations'
             && ! array_key_exists('reference_images', $data)
-            && ($data['metadata']['generation_id'] ?? null) === (string) $generation->id;
+            && ($data['metadata']['generation_id'] ?? null) === $generation->public_id;
     });
 });
 
@@ -281,7 +281,7 @@ it('sends reference images when the generation has them', function () {
         $data = $request->data();
 
         return ($data['reference_images'] ?? null) === ['https://example.com/style.png']
-            && ($data['metadata']['generation_id'] ?? null) === (string) $generation->id;
+            && ($data['metadata']['generation_id'] ?? null) === $generation->public_id;
     });
 });
 

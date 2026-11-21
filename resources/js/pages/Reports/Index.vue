@@ -32,7 +32,7 @@ type ReportDay = {
 };
 
 type ReportLine = {
-    id: number;
+    id: string;
     completed_at: string;
     user: string;
     email: string;
@@ -63,7 +63,7 @@ type ReportFilters = {
 };
 
 type ReportUserOption = {
-    id: number;
+    id: string;
     name: string;
     email: string;
 };

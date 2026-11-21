@@ -28,7 +28,7 @@ it('formats the pending estimate and the waiting label', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Generations/Index')
-            ->where('generations.0.id', $generation->id)
+            ->where('generations.0.id', $generation->public_id)
             ->where('generations.0.estimate', '$0,0574')
             ->where('generations.0.charge', null)
             ->where('generations.0.status_label', 'Sending'));
@@ -47,7 +47,7 @@ it('formats the succeeded charge', function () {
         ->get(route('generations.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('generations.0.id', $generation->id)
+            ->where('generations.0.id', $generation->public_id)
             ->where('generations.0.estimate', '$0,0574')
             ->where('generations.0.charge', '$0,467344'));
 });
@@ -125,7 +125,7 @@ it('refreshes a pending generation into the succeeded charge and image', functio
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->has('generations', 1)
-            ->where('generations.0.id', $generation->id)
+            ->where('generations.0.id', $generation->public_id)
             ->where('generations.0.status', 'pending')
             ->where('generations.0.status_label', 'Sending')
             ->where('generations.0.estimate', '$0,0574')
@@ -144,7 +144,7 @@ it('refreshes a pending generation into the succeeded charge and image', functio
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->has('generations', 1)
-            ->where('generations.0.id', $generation->id)
+            ->where('generations.0.id', $generation->public_id)
             ->where('generations.0.status', 'succeeded')
             ->where('generations.0.estimate', '$0,0574')
             ->where('generations.0.charge', '$0,467344')
@@ -198,7 +198,7 @@ it('lists only the authenticated user generations', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->has('generations', 1)
-            ->where('generations.0.id', $own->id));
+            ->where('generations.0.id', $own->public_id));
 });
 
 it('pages generations with a cursor', function () {
@@ -219,7 +219,7 @@ it('pages generations with a cursor', function () {
     $first->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->has('generations', 1)
-            ->where('generations.0.id', $newer->id)
+            ->where('generations.0.id', $newer->public_id)
             ->where('pagination.type', 'cursor')
             ->where('pagination.total', 2)
             ->where('pagination.per_page', 1)
@@ -238,7 +238,7 @@ it('pages generations with a cursor', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->has('generations', 1)
-            ->where('generations.0.id', $older->id)
+            ->where('generations.0.id', $older->public_id)
             ->where('pagination.total', 2)
             ->where('pagination.next_cursor', null));
 });

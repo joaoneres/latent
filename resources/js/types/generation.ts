@@ -1,5 +1,5 @@
 export type GenerationRow = {
-    id: number;
+    id: string;
     prompt: string;
     status: string;
     status_label: string;

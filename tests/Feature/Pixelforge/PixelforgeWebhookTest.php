@@ -92,6 +92,17 @@ it('stores a ping without changing the generation', function () {
         ->and($generation->charge_nano)->toBeNull();
 });
 
+it('matches a generation by the old numeric metadata id', function () {
+    $generation = makeWebhookGeneration();
+    $payload = succeededWebhookPayload('evt_legacy', $generation);
+    $payload['data']['object']['id'] = 'gen_legacy';
+    $payload['data']['object']['metadata']['generation_id'] = (string) $generation->id;
+
+    postPixelforgeWebhook($payload)->assertOk();
+
+    expect($generation->fresh()->pixelforge_id)->toBe('gen_legacy');
+});
+
 it('matches a generation by metadata when pixelforge id is still empty', function () {
     $generation = makeWebhookGeneration();
 
@@ -122,7 +133,7 @@ it('keeps a succeeded generation when a later processing webhook arrives', funct
                 'object' => 'generation',
                 'status' => 'processing',
                 'metadata' => [
-                    'generation_id' => (string) $generation->id,
+                    'generation_id' => $generation->public_id,
                 ],
             ],
         ],
@@ -211,7 +222,7 @@ function succeededWebhookPayload(string $eventId, Generation $generation): array
                     'reasoning_tokens' => '12.50',
                 ],
                 'metadata' => [
-                    'generation_id' => (string) $generation->id,
+                    'generation_id' => $generation->public_id,
                 ],
             ],
         ],

@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class DownloadAdminReportHandler implements HandlesHttpRequest
 {
-    /** @var array{from: string|null, to: string|null, user_id: int|null, status: string|null} */
+    /** @var array{from: string|null, to: string|null, user_id: string|null, status: string|null} */
     private array $filters;
 
     public function __construct(

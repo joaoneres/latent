@@ -64,7 +64,7 @@ it('stores a pending generation and dispatches submission', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('Generations/Index')
             ->has('generations', 1)
-            ->where('generations.0.id', $generation->id)
+            ->where('generations.0.id', $generation->public_id)
             ->where('generations.0.status', 'pending'));
 });
 

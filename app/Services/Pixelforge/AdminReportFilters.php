@@ -4,11 +4,12 @@ namespace App\Services\Pixelforge;
 
 use App\Enums\GenerationStatus;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 final class AdminReportFilters
 {
     /**
-     * @return array{from: string|null, to: string|null, user_id: int|null, status: string|null}
+     * @return array{from: string|null, to: string|null, user_id: string|null, status: string|null}
      */
     public function fromRequest(Request $request): array
     {
@@ -43,17 +44,13 @@ final class AdminReportFilters
         return $value;
     }
 
-    private function userId(mixed $value): ?int
+    private function userId(mixed $value): ?string
     {
-        if (! is_string($value) && ! is_int($value)) {
+        if (! is_string($value) || ! Str::isUlid($value)) {
             return null;
         }
 
-        if (preg_match('/^[1-9]\d*$/', (string) $value) !== 1) {
-            return null;
-        }
-
-        return (int) $value;
+        return strtoupper($value);
     }
 
     private function status(mixed $value): ?string
