@@ -9,65 +9,32 @@ use Illuminate\Http\Request;
 
 class HandlePixelforgeWebhookHandler
 {
+    private string $rawBody = '';
+
+    /** @var array<string, mixed> */
+    private array $payload = [];
+
+    private string $eventId = '';
+
+    private string $type = '';
+
     public function __construct(private ApplyGenerationState $state) {}
 
     public function handle(Request $request): void
     {
-        $rawBody = $request->getContent();
-        $this->assertSignature($request, $rawBody);
+        $this->assertSignature($request);
+        $this->readPayload();
 
-        $payload = json_decode($rawBody, true);
-
-        if (! is_array($payload) || ! isset($payload['id'], $payload['type']) || ! is_string($payload['id']) || ! is_string($payload['type'])) {
-            abort(400);
-        }
-
-        $eventId = $payload['id'];
-        $type = $payload['type'];
-
-        $inserted = WebhookEvent::query()->insertOrIgnore([
-            'event_id' => $eventId,
-            'type' => $type,
-            'payload' => json_encode($payload, JSON_THROW_ON_ERROR),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        if ($inserted === 0) {
+        if (! $this->storeEvent()) {
             return;
         }
 
-        if ($type === 'ping') {
-            $this->markProcessed($eventId);
-
-            return;
-        }
-
-        if (! in_array($type, ['generation.processing', 'generation.succeeded', 'generation.failed'], true)) {
-            return;
-        }
-
-        $data = $payload['data'] ?? null;
-        $object = is_array($data) ? ($data['object'] ?? null) : null;
-
-        if (! is_array($object)) {
-            WebhookEvent::query()->where('event_id', $eventId)->delete();
-            abort(500);
-        }
-
-        $generation = $this->findGeneration($object);
-
-        if (! $generation instanceof Generation) {
-            WebhookEvent::query()->where('event_id', $eventId)->delete();
-            abort(500);
-        }
-
-        $this->state->fromProvider($generation, $this->providerObject($object));
-        $this->markProcessed($eventId);
+        $this->applyEvent();
     }
 
-    private function assertSignature(Request $request, string $rawBody): void
+    private function assertSignature(Request $request): void
     {
+        $this->rawBody = $request->getContent();
         $header = $request->header('Pixelforge-Signature', '');
 
         if ($header === '') {
@@ -84,7 +51,7 @@ class HandlePixelforgeWebhookHandler
         $timestamp = $parts['t'] ?? '';
         $provided = $parts['v1'] ?? '';
         $secret = config('services.pixelforge.webhook_secret');
-        $expected = hash_hmac('sha256', "{$timestamp}.{$rawBody}", is_string($secret) ? $secret : '');
+        $expected = hash_hmac('sha256', "{$timestamp}.{$this->rawBody}", is_string($secret) ? $secret : '');
 
         if (strlen($provided) !== strlen($expected)) {
             abort(400);
@@ -97,6 +64,68 @@ class HandlePixelforgeWebhookHandler
         if (! hash_equals($expected, $provided)) {
             abort(400);
         }
+    }
+
+    private function readPayload(): void
+    {
+        $payload = json_decode($this->rawBody, true);
+
+        if (! is_array($payload) || ! isset($payload['id'], $payload['type']) || ! is_string($payload['id']) || ! is_string($payload['type'])) {
+            abort(400);
+        }
+
+        $this->payload = $payload;
+        $this->eventId = $payload['id'];
+        $this->type = $payload['type'];
+    }
+
+    private function storeEvent(): bool
+    {
+        $inserted = WebhookEvent::query()->insertOrIgnore([
+            'event_id' => $this->eventId,
+            'type' => $this->type,
+            'payload' => json_encode($this->payload, JSON_THROW_ON_ERROR),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $inserted !== 0;
+    }
+
+    private function applyEvent(): void
+    {
+        if ($this->type === 'ping') {
+            $this->markProcessed();
+
+            return;
+        }
+
+        if (! in_array($this->type, ['generation.processing', 'generation.succeeded', 'generation.failed'], true)) {
+            return;
+        }
+
+        $this->applyGeneration();
+    }
+
+    private function applyGeneration(): void
+    {
+        $data = $this->payload['data'] ?? null;
+        $object = is_array($data) ? ($data['object'] ?? null) : null;
+
+        if (! is_array($object)) {
+            $this->dropEvent();
+            abort(500);
+        }
+
+        $generation = $this->findGeneration($object);
+
+        if (! $generation instanceof Generation) {
+            $this->dropEvent();
+            abort(500);
+        }
+
+        $this->state->fromProvider($generation, $this->providerObject($object));
+        $this->markProcessed();
     }
 
     /**
@@ -147,9 +176,9 @@ class HandlePixelforgeWebhookHandler
         return $normalized;
     }
 
-    private function markProcessed(string $eventId): void
+    private function markProcessed(): void
     {
-        $event = WebhookEvent::query()->where('event_id', $eventId)->first();
+        $event = WebhookEvent::query()->where('event_id', $this->eventId)->first();
 
         if (! $event instanceof WebhookEvent) {
             return;
@@ -157,5 +186,10 @@ class HandlePixelforgeWebhookHandler
 
         $event->processed_at = now();
         $event->save();
+    }
+
+    private function dropEvent(): void
+    {
+        WebhookEvent::query()->where('event_id', $this->eventId)->delete();
     }
 }

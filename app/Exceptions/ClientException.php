@@ -7,7 +7,7 @@ use Throwable;
 
 class ClientException extends Exception
 {
-    public function __construct(string $message, Throwable $previous)
+    public function __construct(string $message, ?Throwable $previous = null)
     {
         parent::__construct($message, previous: $previous);
     }

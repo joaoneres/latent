@@ -2,25 +2,30 @@
 
 namespace App\Applications\App\Generation\Http\Handlers;
 
-use App\Clients\Pixelforge\PixelforgeClient;
-use App\Exceptions\ClientException;
 use App\Models\Generation;
 use App\Services\Pixelforge\MoneyFormatter;
-use Brick\Math\BigDecimal;
-use Carbon\CarbonImmutable;
+use App\Services\Pixelforge\UsageReport;
 use Illuminate\Http\Request;
 
 class ListAdminReportHandler
 {
     public function __construct(
         private MoneyFormatter $formatter,
-        private PixelforgeClient $client,
+        private UsageReport $usage,
     ) {}
 
+    public function handle(Request $request): void
+    {
+        $grouped = $this->group();
+        $usage = $this->usage->forDates(array_keys($grouped));
+
+        $request->attributes->set('days', $this->present($grouped, $usage));
+    }
+
     /**
-     * @return list<array{date: string, charged: string, provider_cost: string, profit: string, matches: bool|null, usage_cost: string|null, users: list<array{name: string, charged: string, provider_cost: string, profit: string}>}>
+     * @return array<string, array{charge: int, cost: int, users: array<int, array{name: string, charge: int, cost: int}>}>
      */
-    public function handle(Request $request): array
+    private function group(): array
     {
         /** @var array<string, array{charge: int, cost: int, users: array<int, array{name: string, charge: int, cost: int}>}> $grouped */
         $grouped = [];
@@ -62,9 +67,16 @@ class ListAdminReportHandler
 
         krsort($grouped);
 
-        /** @var list<string> $dates */
-        $dates = array_keys($grouped);
-        $usage = $this->usageByDate($dates);
+        return $grouped;
+    }
+
+    /**
+     * @param  array<string, array{charge: int, cost: int, users: array<int, array{name: string, charge: int, cost: int}>}>  $grouped
+     * @param  array{available: bool, by_date: array<string, int>}  $usage
+     * @return list<array{date: string, charged: string, provider_cost: string, profit: string, matches: bool|null, usage_cost: string|null, users: list<array{name: string, charged: string, provider_cost: string, profit: string}>}>
+     */
+    private function present(array $grouped, array $usage): array
+    {
         $days = [];
 
         foreach ($grouped as $date => $day) {
@@ -99,62 +111,5 @@ class ListAdminReportHandler
         }
 
         return $days;
-    }
-
-    /**
-     * @param  list<string>  $dates
-     * @return array{available: bool, by_date: array<string, int>}
-     */
-    private function usageByDate(array $dates): array
-    {
-        if ($dates === []) {
-            return ['available' => true, 'by_date' => []];
-        }
-
-        $startDate = min($dates);
-        $endDate = max($dates);
-
-        if ($this->exceedsUsageRange($startDate, $endDate)) {
-            return ['available' => false, 'by_date' => []];
-        }
-
-        try {
-            $payload = $this->client->usage($startDate, $endDate);
-        } catch (ClientException) {
-            return ['available' => false, 'by_date' => []];
-        }
-
-        $rows = $payload['data'] ?? null;
-
-        if (! is_array($rows)) {
-            return ['available' => true, 'by_date' => []];
-        }
-
-        $byDate = [];
-
-        foreach ($rows as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-
-            $date = $row['date'] ?? null;
-            $costUsd = $row['cost_usd'] ?? null;
-
-            if (! is_string($date) || ! is_string($costUsd)) {
-                continue;
-            }
-
-            $byDate[$date] = BigDecimal::of($costUsd)->multipliedBy('1000000000')->toInt();
-        }
-
-        return ['available' => true, 'by_date' => $byDate];
-    }
-
-    private function exceedsUsageRange(string $startDate, string $endDate): bool
-    {
-        $start = CarbonImmutable::parse($startDate)->startOfDay();
-        $end = CarbonImmutable::parse($endDate)->startOfDay();
-
-        return $start->diffInDays($end, absolute: true) >= 92;
     }
 }

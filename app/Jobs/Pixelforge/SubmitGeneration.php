@@ -19,106 +19,168 @@ class SubmitGeneration implements ShouldQueue
 
     public int $timeout = 20;
 
+    private Generation $generation;
+
+    private Response $response;
+
+    private ApplyGenerationState $state;
+
     public function __construct(public int $generationId) {}
 
     public function handle(PixelforgeClient $client, ApplyGenerationState $state): void
     {
+        $this->state = $state;
+        $this->load();
+        $this->post($client);
+    }
+
+    private function load(): void
+    {
         $generation = Generation::query()->findOrFail($this->generationId);
         $generation->submit_attempts++;
         $generation->save();
+        $this->generation = $generation;
+    }
 
-        $body = [
-            'prompt' => $generation->prompt,
-            'size' => $generation->size,
-            'quality' => $generation->quality,
-            'reference_images' => $generation->reference_images ?? [],
+    private function post(PixelforgeClient $client): void
+    {
+        try {
+            $this->response = $client->createGeneration($this->generation->idempotency_key, $this->body());
+        } catch (ClientException) {
+            $this->failNetwork();
+
+            return;
+        }
+
+        $this->applyResponse();
+    }
+
+    /**
+     * @return array{prompt: string, size: string, quality: string, reference_images: mixed, metadata: array{generation_id: string}}
+     */
+    private function body(): array
+    {
+        return [
+            'prompt' => $this->generation->prompt,
+            'size' => $this->generation->size,
+            'quality' => $this->generation->quality,
+            'reference_images' => $this->generation->reference_images ?? [],
             'metadata' => [
-                'generation_id' => (string) $generation->id,
+                'generation_id' => (string) $this->generation->id,
             ],
         ];
+    }
 
-        try {
-            $response = $client->createGeneration($generation->idempotency_key, $body);
-        } catch (ClientException) {
-            if ($this->attempts() >= 5) {
-                $state->fail($generation, 'network_error', 'Pixelforge não respondeu.');
-
-                return;
-            }
-
-            $this->release(5 * $this->attempts());
+    private function applyResponse(): void
+    {
+        if ($this->response->status() === 202) {
+            $this->accept();
 
             return;
         }
 
-        if ($response->status() === 202) {
-            $object = $response->json();
-
-            if (is_array($object)) {
-                $state->fromProvider($generation, $object);
-            }
+        if ($this->response->status() === 429 && $this->errorCode() === 'daily_limit_exceeded') {
+            $this->failDaily();
 
             return;
         }
 
-        $code = $this->errorCode($response);
-        $message = $this->errorMessage($response);
-
-        if ($response->status() === 429 && $code === 'daily_limit_exceeded') {
-            $state->fail($generation, 'daily_limit_exceeded', 'limite diário atingido');
+        if ($this->shouldRetry()) {
+            $this->retryOrFail();
 
             return;
         }
 
-        if (
-            ($response->status() === 429 && in_array($code, ['rate_limit_exceeded', 'concurrency_limit_exceeded'], true))
-            || ($response->status() === 503 && $code === 'overloaded')
-        ) {
-            if ($this->attempts() >= 5) {
-                $state->fail($generation, $code, $message);
-
-                return;
-            }
-
-            $this->release(max((int) $response->header('Retry-After'), 5 * $this->attempts()));
+        if (($this->response->status() === 400 && $this->errorCode() === 'content_policy_violation') || $this->response->status() === 422) {
+            $this->failWithApiMessage();
 
             return;
         }
 
-        if (($response->status() === 400 && $code === 'content_policy_violation') || $response->status() === 422) {
-            $state->fail($generation, $code, $message);
+        if ($this->response->status() === 401) {
+            $this->failAuthentication();
 
             return;
         }
 
-        if ($response->status() === 401) {
-            Log::error('Pixelforge authentication failed.', [
-                'generation_id' => $generation->id,
-            ]);
-            $state->fail(
-                $generation,
-                $code !== '' ? $code : 'invalid_api_key',
-                $message !== '' ? $message : 'Pixelforge authentication failed.',
-            );
-
-            return;
-        }
-
-        if ($response->status() === 409) {
-            $state->fail($generation, $code, $message);
+        if ($this->response->status() === 409) {
+            $this->failWithApiMessage();
         }
     }
 
-    private function errorCode(Response $response): string
+    private function accept(): void
     {
-        $error = $response->json('error');
+        $object = $this->response->json();
+
+        if (is_array($object)) {
+            $this->state->fromProvider($this->generation, $object);
+        }
+    }
+
+    private function failDaily(): void
+    {
+        $this->state->fail($this->generation, 'daily_limit_exceeded', 'limite diário atingido');
+    }
+
+    private function shouldRetry(): bool
+    {
+        $code = $this->errorCode();
+
+        return ($this->response->status() === 429 && in_array($code, ['rate_limit_exceeded', 'concurrency_limit_exceeded'], true))
+            || ($this->response->status() === 503 && $code === 'overloaded');
+    }
+
+    private function retryOrFail(): void
+    {
+        if ($this->attempts() >= 5) {
+            $this->state->fail($this->generation, $this->errorCode(), $this->errorMessage());
+
+            return;
+        }
+
+        $this->release(max((int) $this->response->header('Retry-After'), 5 * $this->attempts()));
+    }
+
+    private function failNetwork(): void
+    {
+        if ($this->attempts() >= 5) {
+            $this->state->fail($this->generation, 'network_error', 'Pixelforge não respondeu.');
+
+            return;
+        }
+
+        $this->release(5 * $this->attempts());
+    }
+
+    private function failAuthentication(): void
+    {
+        Log::error('Pixelforge authentication failed.', [
+            'generation_id' => $this->generation->id,
+        ]);
+        $code = $this->errorCode();
+        $message = $this->errorMessage();
+        $this->state->fail(
+            $this->generation,
+            $code !== '' ? $code : 'invalid_api_key',
+            $message !== '' ? $message : 'Pixelforge authentication failed.',
+        );
+    }
+
+    private function failWithApiMessage(): void
+    {
+        $this->state->fail($this->generation, $this->errorCode(), $this->errorMessage());
+    }
+
+    private function errorCode(): string
+    {
+        $error = $this->response->json('error');
 
         return is_array($error) && isset($error['code']) ? (string) $error['code'] : '';
     }
 
-    private function errorMessage(Response $response): string
+    private function errorMessage(): string
     {
-        $error = $response->json('error');
+        $error = $this->response->json('error');
 
         return is_array($error) && isset($error['message']) ? (string) $error['message'] : '';
     }

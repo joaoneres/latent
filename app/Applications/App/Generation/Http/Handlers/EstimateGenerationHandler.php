@@ -15,10 +15,15 @@ class EstimateGenerationHandler
         private MoneyFormatter $formatter,
     ) {}
 
+    public function handle(Request $request): void
+    {
+        $request->attributes->set('estimate', $this->estimate($request));
+    }
+
     /**
      * @return array{min: string, max: string}
      */
-    public function handle(Request $request): array
+    private function estimate(Request $request): array
     {
         /** @var array{rates: array{input_text_tokens: string, input_image_tokens: string, output_tokens: string, reasoning_tokens: string}, tokens: array{characters_per_text_token: int, text_token_variance: float|int|string, per_reference_image: int, output: array<string, array<string, int>>, reasoning: array<string, array{min: int, max: int}>}} $pricing */
         $pricing = $this->pricing->current();
@@ -30,6 +35,15 @@ class EstimateGenerationHandler
             $pricing,
         );
 
+        return $this->format($estimate);
+    }
+
+    /**
+     * @param  array{min: int, max: int}  $estimate
+     * @return array{min: string, max: string}
+     */
+    private function format(array $estimate): array
+    {
         return [
             'min' => $this->formatter->format($estimate['min']),
             'max' => $this->formatter->format($estimate['max']),

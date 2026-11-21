@@ -12,27 +12,40 @@ class ListGenerationsHandler
 {
     public function __construct(private MoneyFormatter $formatter) {}
 
+    public function handle(Request $request): void
+    {
+        $request->attributes->set('generations', $this->rows($request));
+    }
+
     /**
      * @return list<array{id: int, prompt: string, status: string, status_label: string, amount: string, image_url: string|null}>
      */
-    public function handle(Request $request): array
+    private function rows(Request $request): array
     {
         /** @var User $user */
         $user = $request->user();
         $generations = [];
 
         foreach ($user->generations()->latest()->get() as $generation) {
-            $generations[] = [
-                'id' => $generation->id,
-                'prompt' => $generation->prompt,
-                'status' => $generation->status->value,
-                'status_label' => $this->statusLabel($generation->status),
-                'amount' => $this->formatter->format($this->amountNano($generation)),
-                'image_url' => $this->imageUrl($generation),
-            ];
+            $generations[] = $this->present($generation);
         }
 
         return $generations;
+    }
+
+    /**
+     * @return array{id: int, prompt: string, status: string, status_label: string, amount: string, image_url: string|null}
+     */
+    private function present(Generation $generation): array
+    {
+        return [
+            'id' => $generation->id,
+            'prompt' => $generation->prompt,
+            'status' => $generation->status->value,
+            'status_label' => $this->statusLabel($generation->status),
+            'amount' => $this->formatter->format($this->amountNano($generation)),
+            'image_url' => $this->imageUrl($generation),
+        ];
     }
 
     private function statusLabel(GenerationStatus $status): string
