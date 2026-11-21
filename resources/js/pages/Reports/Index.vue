@@ -200,10 +200,7 @@ function usageLabel(day: ReportDay): string {
             </template>
         </PageHeader>
 
-        <form
-            class="grid gap-4 rounded-lg border p-4"
-            @submit.prevent="apply"
-        >
+        <form class="grid gap-4 rounded-lg border p-4" @submit.prevent="apply">
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div class="grid gap-2">
                     <Label for="report-from">From</Label>
@@ -280,23 +277,36 @@ function usageLabel(day: ReportDay): string {
 
             <div class="overflow-x-auto rounded-lg border">
                 <table class="w-full min-w-[64rem] text-sm">
-                    <thead class="border-b bg-muted/40 text-left text-muted-foreground">
+                    <thead
+                        class="border-b bg-muted/40 text-left text-muted-foreground"
+                    >
                         <tr>
-                            <th class="px-3 py-2 font-medium">Completed (UTC)</th>
+                            <th class="px-3 py-2 font-medium">
+                                Completed (UTC)
+                            </th>
                             <th class="px-3 py-2 font-medium">User</th>
                             <th class="px-3 py-2 font-medium">Status</th>
                             <th class="px-3 py-2 font-medium">Prompt</th>
                             <th class="px-3 py-2 font-medium">Size</th>
                             <th class="px-3 py-2 font-medium">Quality</th>
-                            <th class="px-3 py-2 text-right font-medium">Charged</th>
-                            <th class="px-3 py-2 text-right font-medium">Provider cost</th>
-                            <th class="px-3 py-2 text-right font-medium">Profit</th>
+                            <th class="px-3 py-2 text-right font-medium">
+                                Charged
+                            </th>
+                            <th class="px-3 py-2 text-right font-medium">
+                                Provider cost
+                            </th>
+                            <th class="px-3 py-2 text-right font-medium">
+                                Profit
+                            </th>
                             <th class="px-3 py-2 font-medium">Error</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="generations.length === 0">
-                            <td class="px-3 py-8 text-center text-muted-foreground" colspan="10">
+                            <td
+                                class="px-3 py-8 text-center text-muted-foreground"
+                                colspan="10"
+                            >
                                 No completed generations.
                             </td>
                         </tr>
@@ -305,7 +315,9 @@ function usageLabel(day: ReportDay): string {
                             :key="line.id"
                             class="border-b last:border-b-0"
                         >
-                            <td class="whitespace-nowrap px-3 py-2 tabular-nums">
+                            <td
+                                class="px-3 py-2 whitespace-nowrap tabular-nums"
+                            >
                                 {{ line.completed_at }}
                             </td>
                             <td class="px-3 py-2">
@@ -314,27 +326,43 @@ function usageLabel(day: ReportDay): string {
                                     {{ line.email }}
                                 </div>
                             </td>
-                            <td class="whitespace-nowrap px-3 py-2 capitalize">
+                            <td class="px-3 py-2 whitespace-nowrap capitalize">
                                 {{ line.status }}
                             </td>
                             <td class="max-w-xs px-3 py-2">
-                                <p class="line-clamp-2 break-words" :title="line.prompt">
+                                <p
+                                    class="line-clamp-2 break-words"
+                                    :title="line.prompt"
+                                >
                                     {{ line.prompt }}
                                 </p>
                             </td>
-                            <td class="whitespace-nowrap px-3 py-2">{{ line.size }}</td>
-                            <td class="whitespace-nowrap px-3 py-2">{{ line.quality }}</td>
-                            <td class="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                {{ line.size }}
+                            </td>
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                {{ line.quality }}
+                            </td>
+                            <td
+                                class="px-3 py-2 text-right whitespace-nowrap tabular-nums"
+                            >
                                 {{ line.charged }}
                             </td>
-                            <td class="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                            <td
+                                class="px-3 py-2 text-right whitespace-nowrap tabular-nums"
+                            >
                                 {{ line.provider_cost }}
                             </td>
-                            <td class="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                            <td
+                                class="px-3 py-2 text-right whitespace-nowrap tabular-nums"
+                            >
                                 {{ line.profit }}
                             </td>
                             <td class="max-w-xs px-3 py-2">
-                                <p class="line-clamp-2 break-words" :title="line.error_message">
+                                <p
+                                    class="line-clamp-2 break-words"
+                                    :title="line.error_message"
+                                >
                                     {{ line.error_message }}
                                 </p>
                             </td>
@@ -356,7 +384,9 @@ function usageLabel(day: ReportDay): string {
                 :key="day.date"
                 class="overflow-hidden rounded-lg border"
             >
-                <header class="flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
+                <header
+                    class="flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3"
+                >
                     <h3 class="font-medium tabular-nums">{{ day.date }}</h3>
                     <p class="text-sm text-muted-foreground">
                         {{ usageLabel(day) }}
@@ -365,12 +395,20 @@ function usageLabel(day: ReportDay): string {
 
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[36rem] text-sm">
-                        <thead class="border-b bg-muted/40 text-left text-muted-foreground">
+                        <thead
+                            class="border-b bg-muted/40 text-left text-muted-foreground"
+                        >
                             <tr>
                                 <th class="px-4 py-2 font-medium">User</th>
-                                <th class="px-4 py-2 text-right font-medium">Charged</th>
-                                <th class="px-4 py-2 text-right font-medium">Provider cost</th>
-                                <th class="px-4 py-2 text-right font-medium">Profit</th>
+                                <th class="px-4 py-2 text-right font-medium">
+                                    Charged
+                                </th>
+                                <th class="px-4 py-2 text-right font-medium">
+                                    Provider cost
+                                </th>
+                                <th class="px-4 py-2 text-right font-medium">
+                                    Profit
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -380,15 +418,27 @@ function usageLabel(day: ReportDay): string {
                                 class="border-b last:border-b-0"
                             >
                                 <td class="px-4 py-2">{{ user.name }}</td>
-                                <td class="px-4 py-2 text-right tabular-nums">{{ user.charged }}</td>
-                                <td class="px-4 py-2 text-right tabular-nums">{{ user.provider_cost }}</td>
-                                <td class="px-4 py-2 text-right tabular-nums">{{ user.profit }}</td>
+                                <td class="px-4 py-2 text-right tabular-nums">
+                                    {{ user.charged }}
+                                </td>
+                                <td class="px-4 py-2 text-right tabular-nums">
+                                    {{ user.provider_cost }}
+                                </td>
+                                <td class="px-4 py-2 text-right tabular-nums">
+                                    {{ user.profit }}
+                                </td>
                             </tr>
                             <tr class="border-t bg-muted/20 font-medium">
                                 <td class="px-4 py-2">Day total</td>
-                                <td class="px-4 py-2 text-right tabular-nums">{{ day.charged }}</td>
-                                <td class="px-4 py-2 text-right tabular-nums">{{ day.provider_cost }}</td>
-                                <td class="px-4 py-2 text-right tabular-nums">{{ day.profit }}</td>
+                                <td class="px-4 py-2 text-right tabular-nums">
+                                    {{ day.charged }}
+                                </td>
+                                <td class="px-4 py-2 text-right tabular-nums">
+                                    {{ day.provider_cost }}
+                                </td>
+                                <td class="px-4 py-2 text-right tabular-nums">
+                                    {{ day.profit }}
+                                </td>
                             </tr>
                         </tbody>
                     </table>
