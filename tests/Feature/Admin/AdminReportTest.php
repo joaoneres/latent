@@ -356,6 +356,12 @@ it('ignores a numeric user id on the report', function () {
         'prompt' => 'Bea succeeded',
     ]);
 
+    Http::fake([
+        'https://pixelforge.test/v1/usage*' => Http::response([
+            'data' => [],
+        ]),
+    ]);
+
     $this->withoutVite()
         ->actingAs($admin)
         ->get(route('reports.index', [
