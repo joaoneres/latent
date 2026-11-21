@@ -48,20 +48,11 @@ On a server, run `php artisan schedule:run` from cron once a minute, and keep a 
 
 ## Sign in
 
-Registration is closed. Accounts are created by an operator. The seed account is:
-
-| | |
-|---|---|
-| Email | `test@example.com` |
-| Password | `password` |
+Registration is closed. Accounts are created by an operator.
 
 The account starts with an empty balance. On the create screen, add `$1` or `$5` before the first generation. The quote is shown before the image is submitted, and the request is refused when the balance cannot cover the maximum.
 
-Reports are limited to administrators. Promote the seed account with:
-
-```bash
-php artisan tinker --execute 'App\Models\User::query()->where("email", "test@example.com")->update(["is_admin" => true]);'
-```
+Reports are limited to administrators.
 
 ## Tests
 
