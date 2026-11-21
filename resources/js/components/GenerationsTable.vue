@@ -38,7 +38,7 @@ function openPreview(generation: GenerationRow): void {
 <template>
     <div class="overflow-hidden rounded-xl border">
         <div class="overflow-x-auto">
-        <table class="w-full min-w-[760px] border-collapse text-left text-sm">
+        <table class="w-full min-w-[860px] border-collapse text-left text-sm">
             <thead
                 class="border-b bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase"
             >
@@ -48,6 +48,7 @@ function openPreview(generation: GenerationRow): void {
                     <th class="px-4 py-3 font-medium">Status</th>
                     <th class="px-4 py-3 font-medium">Size</th>
                     <th class="px-4 py-3 font-medium">Quality</th>
+                    <th class="px-4 py-3 font-medium">Estimate</th>
                     <th class="px-4 py-3 font-medium">Charge</th>
                     <th class="px-4 py-3 font-medium">Created</th>
                     <th class="px-4 py-3 text-center font-medium">Actions</th>
@@ -56,7 +57,7 @@ function openPreview(generation: GenerationRow): void {
             <tbody>
                 <tr v-if="generations.length === 0">
                     <td
-                        colspan="8"
+                        colspan="9"
                         class="px-4 py-10 text-center text-muted-foreground"
                     >
                         No generations yet.
@@ -134,7 +135,15 @@ function openPreview(generation: GenerationRow): void {
                         {{ generation.quality }}
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap tabular-nums">
-                        {{ generation.amount }}
+                        {{ generation.estimate }}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap tabular-nums">
+                        <span
+                            v-if="generation.charge === null"
+                            class="text-muted-foreground"
+                            aria-label="Not charged yet"
+                        >—</span>
+                        <span v-else>{{ generation.charge }}</span>
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap">
                         {{ generation.created_at }}
@@ -205,8 +214,19 @@ function openPreview(generation: GenerationRow): void {
                             </dd>
                         </div>
                         <div>
+                            <dt class="text-muted-foreground">Estimate</dt>
+                            <dd class="mt-1 tabular-nums">{{ preview.estimate }}</dd>
+                        </div>
+                        <div>
                             <dt class="text-muted-foreground">Charge</dt>
-                            <dd class="mt-1 tabular-nums">{{ preview.amount }}</dd>
+                            <dd class="mt-1 tabular-nums">
+                                <span
+                                    v-if="preview.charge === null"
+                                    class="text-muted-foreground"
+                                    aria-label="Not charged yet"
+                                >—</span>
+                                <span v-else>{{ preview.charge }}</span>
+                            </dd>
                         </div>
                         <div>
                             <dt class="text-muted-foreground">Size</dt>

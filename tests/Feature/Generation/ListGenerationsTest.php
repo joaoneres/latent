@@ -29,7 +29,8 @@ it('formats the pending estimate and the waiting label', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('Generations/Index')
             ->where('generations.0.id', $generation->id)
-            ->where('generations.0.amount', '$0,0574')
+            ->where('generations.0.estimate', '$0,0574')
+            ->where('generations.0.charge', null)
             ->where('generations.0.status_label', 'Sending'));
 });
 
@@ -37,7 +38,7 @@ it('formats the succeeded charge', function () {
     $user = User::factory()->create();
     $generation = makeListedGeneration($user, [
         'status' => GenerationStatus::Succeeded,
-        'estimated_charge_nano' => 1,
+        'estimated_charge_nano' => 57400000,
         'charge_nano' => 467343750,
     ]);
 
@@ -47,13 +48,15 @@ it('formats the succeeded charge', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('generations.0.id', $generation->id)
-            ->where('generations.0.amount', '$0,467344'));
+            ->where('generations.0.estimate', '$0,0574')
+            ->where('generations.0.charge', '$0,467344'));
 });
 
 it('formats a failed generation as zero without an image', function () {
     $user = User::factory()->create();
     makeListedGeneration($user, [
         'status' => GenerationStatus::Failed,
+        'estimated_charge_nano' => 57400000,
         'charge_nano' => 0,
         'image_url' => 'https://pixelforge.test/images/failed.png',
         'image_url_expires_at' => now()->addHour(),
@@ -64,7 +67,8 @@ it('formats a failed generation as zero without an image', function () {
         ->get(route('generations.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('generations.0.amount', '$0,0000')
+            ->where('generations.0.estimate', '$0,0574')
+            ->where('generations.0.charge', '$0,0000')
             ->where('generations.0.image_url', null));
 });
 
@@ -124,7 +128,8 @@ it('refreshes a pending generation into the succeeded charge and image', functio
             ->where('generations.0.id', $generation->id)
             ->where('generations.0.status', 'pending')
             ->where('generations.0.status_label', 'Sending')
-            ->where('generations.0.amount', '$0,0574')
+            ->where('generations.0.estimate', '$0,0574')
+            ->where('generations.0.charge', null)
             ->where('generations.0.image_url', null));
 
     $generation->status = GenerationStatus::Succeeded;
@@ -141,7 +146,8 @@ it('refreshes a pending generation into the succeeded charge and image', functio
             ->has('generations', 1)
             ->where('generations.0.id', $generation->id)
             ->where('generations.0.status', 'succeeded')
-            ->where('generations.0.amount', '$0,467344')
+            ->where('generations.0.estimate', '$0,0574')
+            ->where('generations.0.charge', '$0,467344')
             ->where('generations.0.image_url', $url));
 });
 
@@ -170,7 +176,8 @@ it('refreshes a generation into a failed charge without an image', function () {
         ->get(route('generations.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('generations.0.amount', '$0,0000')
+            ->where('generations.0.estimate', '$0,0574')
+            ->where('generations.0.charge', '$0,0000')
             ->where('generations.0.image_url', null));
 });
 
