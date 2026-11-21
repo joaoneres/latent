@@ -3,6 +3,7 @@
 namespace App\Jobs\Pixelforge;
 
 use App\Clients\Pixelforge\PixelforgeClient;
+use App\Enums\PixelforgeErrorCode;
 use App\Exceptions\ClientException;
 use App\Models\Generation;
 use App\Services\Pixelforge\ApplyGenerationState;
@@ -79,7 +80,7 @@ class SubmitGeneration implements ShouldQueue
             return;
         }
 
-        if ($this->response->status() === 429 && $this->errorCode() === 'daily_limit_exceeded') {
+        if ($this->response->status() === 429 && $this->errorCode() === PixelforgeErrorCode::DailyLimitExceeded) {
             $this->failDaily();
 
             return;
@@ -91,7 +92,7 @@ class SubmitGeneration implements ShouldQueue
             return;
         }
 
-        if (($this->response->status() === 400 && $this->errorCode() === 'content_policy_violation') || $this->response->status() === 422) {
+        if (($this->response->status() === 400 && $this->errorCode() === PixelforgeErrorCode::ContentPolicyViolation) || $this->response->status() === 422) {
             $this->failWithApiMessage();
 
             return;
@@ -119,21 +120,18 @@ class SubmitGeneration implements ShouldQueue
 
     private function failDaily(): void
     {
-        $this->state->fail($this->generation, 'daily_limit_exceeded', 'Daily limit reached.');
+        $this->state->fail($this->generation, PixelforgeErrorCode::DailyLimitExceeded->value, 'Daily limit reached.');
     }
 
     private function shouldRetry(): bool
     {
-        $code = $this->errorCode();
-
-        return ($this->response->status() === 429 && in_array($code, ['rate_limit_exceeded', 'concurrency_limit_exceeded'], true))
-            || ($this->response->status() === 503 && $code === 'overloaded');
+        return $this->errorCode()?->retriesOn($this->response->status()) ?? false;
     }
 
     private function retryOrFail(): void
     {
         if ($this->attempts() >= 5) {
-            $this->state->fail($this->generation, $this->errorCode(), $this->errorMessage());
+            $this->state->fail($this->generation, $this->rawErrorCode(), $this->errorMessage());
 
             return;
         }
@@ -144,7 +142,7 @@ class SubmitGeneration implements ShouldQueue
     private function failNetwork(): void
     {
         if ($this->attempts() >= 5) {
-            $this->state->fail($this->generation, 'network_error', 'Pixelforge did not respond.');
+            $this->state->fail($this->generation, PixelforgeErrorCode::NetworkError->value, 'Pixelforge did not respond.');
 
             return;
         }
@@ -157,21 +155,26 @@ class SubmitGeneration implements ShouldQueue
         Log::error('Pixelforge authentication failed.', [
             'generation_id' => $this->generation->id,
         ]);
-        $code = $this->errorCode();
+        $code = $this->rawErrorCode();
         $message = $this->errorMessage();
         $this->state->fail(
             $this->generation,
-            $code !== '' ? $code : 'invalid_api_key',
+            $code !== '' ? $code : PixelforgeErrorCode::InvalidApiKey->value,
             $message !== '' ? $message : 'Pixelforge authentication failed.',
         );
     }
 
     private function failWithApiMessage(): void
     {
-        $this->state->fail($this->generation, $this->errorCode(), $this->errorMessage());
+        $this->state->fail($this->generation, $this->rawErrorCode(), $this->errorMessage());
     }
 
-    private function errorCode(): string
+    private function errorCode(): ?PixelforgeErrorCode
+    {
+        return PixelforgeErrorCode::tryFrom($this->rawErrorCode());
+    }
+
+    private function rawErrorCode(): string
     {
         $error = $this->response->json('error');
 
