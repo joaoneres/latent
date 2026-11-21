@@ -3,6 +3,7 @@
 namespace App\Applications\App\Generation\Http\Handlers;
 
 use App\Applications\App\Generation\Http\Request\StoreGenerationRequest;
+use App\Applications\Http\HandlesHttpRequest;
 use App\Enums\GenerationStatus;
 use App\Jobs\Pixelforge\SubmitGeneration;
 use App\Models\User;
@@ -13,20 +14,26 @@ use App\Services\Pixelforge\PricingCatalog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class StoreGenerationHandler
+class StoreGenerationHandler implements HandlesHttpRequest
 {
     public function __construct(
+        private StoreGenerationRequest $request,
         private PricingCatalog $pricing,
         private PricingCalculator $calculator,
         private CreditLedger $ledger,
         private MoneyFormatter $formatter,
     ) {}
 
-    public function handle(StoreGenerationRequest $request): void
+    public function handle(): void
     {
-        $this->resolveEstimate($request);
-        $this->reserve($request);
-        $this->dispatchJob($request);
+        $this->resolveEstimate($this->request);
+        $this->reserve($this->request);
+        $this->dispatchJob($this->request);
+    }
+
+    public function request(): StoreGenerationRequest
+    {
+        return $this->request;
     }
 
     private function resolveEstimate(StoreGenerationRequest $request): void

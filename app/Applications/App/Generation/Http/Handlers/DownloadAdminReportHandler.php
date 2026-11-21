@@ -2,24 +2,26 @@
 
 namespace App\Applications\App\Generation\Http\Handlers;
 
+use App\Applications\Http\HandlesHttpRequest;
 use App\Services\Pixelforge\AdminReportFilters;
 use App\Services\Pixelforge\AdminReportLines;
 use Illuminate\Http\Request;
 
-class DownloadAdminReportHandler
+class DownloadAdminReportHandler implements HandlesHttpRequest
 {
     /** @var array{from: string|null, to: string|null, user_id: int|null, status: string|null} */
     private array $filters;
 
     public function __construct(
+        private Request $request,
         private AdminReportLines $lines,
         private AdminReportFilters $filtersReader,
     ) {}
 
-    public function handle(Request $request): void
+    public function handle(): void
     {
-        $this->readFilters($request);
-        $this->publish($request);
+        $this->readFilters($this->request);
+        $this->publish($this->request);
     }
 
     private function readFilters(Request $request): void

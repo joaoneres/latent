@@ -2,12 +2,13 @@
 
 namespace App\Applications\Integration\Pixelforge\Http\Handlers;
 
+use App\Applications\Http\HandlesHttpRequest;
 use App\Models\Generation;
 use App\Models\WebhookEvent;
 use App\Services\Pixelforge\ApplyGenerationState;
 use Illuminate\Http\Request;
 
-class HandlePixelforgeWebhookHandler
+class HandlePixelforgeWebhookHandler implements HandlesHttpRequest
 {
     private string $rawBody = '';
 
@@ -18,11 +19,14 @@ class HandlePixelforgeWebhookHandler
 
     private string $type = '';
 
-    public function __construct(private ApplyGenerationState $state) {}
+    public function __construct(
+        private Request $request,
+        private ApplyGenerationState $state,
+    ) {}
 
-    public function handle(Request $request): void
+    public function handle(): void
     {
-        $this->assertSignature($request);
+        $this->assertSignature($this->request);
         $this->readPayload();
 
         if (! $this->storeEvent()) {
