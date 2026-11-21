@@ -30,7 +30,7 @@ it('formats the pending estimate and the waiting label', function () {
             ->component('Generations/Index')
             ->where('generations.0.id', $generation->id)
             ->where('generations.0.amount', '$0,0574')
-            ->where('generations.0.status_label', 'Enviando / aguardando vaga'));
+            ->where('generations.0.status_label', 'Sending'));
 });
 
 it('formats the succeeded charge', function () {
@@ -123,7 +123,7 @@ it('refreshes a pending generation into the succeeded charge and image', functio
             ->has('generations', 1)
             ->where('generations.0.id', $generation->id)
             ->where('generations.0.status', 'pending')
-            ->where('generations.0.status_label', 'Enviando / aguardando vaga')
+            ->where('generations.0.status_label', 'Sending')
             ->where('generations.0.amount', '$0,0574')
             ->where('generations.0.image_url', null));
 

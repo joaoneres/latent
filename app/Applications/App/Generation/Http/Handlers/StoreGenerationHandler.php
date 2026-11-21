@@ -85,7 +85,7 @@ class StoreGenerationHandler
         if ($generationId === null) {
             $request->attributes->set(
                 'balance_error',
-                'Saldo insuficiente. Esta geração custa até '.$this->formatter->format($input['maximum']).'.',
+                'Not enough credit. This generation costs up to '.$this->formatter->format($input['maximum']).'.',
             );
 
             return;

@@ -119,7 +119,7 @@ class SubmitGeneration implements ShouldQueue
 
     private function failDaily(): void
     {
-        $this->state->fail($this->generation, 'daily_limit_exceeded', 'limite diário atingido');
+        $this->state->fail($this->generation, 'daily_limit_exceeded', 'Daily limit reached.');
     }
 
     private function shouldRetry(): bool
@@ -144,7 +144,7 @@ class SubmitGeneration implements ShouldQueue
     private function failNetwork(): void
     {
         if ($this->attempts() >= 5) {
-            $this->state->fail($this->generation, 'network_error', 'Pixelforge não respondeu.');
+            $this->state->fail($this->generation, 'network_error', 'Pixelforge did not respond.');
 
             return;
         }

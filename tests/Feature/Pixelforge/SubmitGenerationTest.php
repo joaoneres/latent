@@ -80,7 +80,7 @@ it('fails the daily limit without releasing the job', function () {
 
     expect($generation->status)->toBe(GenerationStatus::Failed)
         ->and($generation->error_code)->toBe('daily_limit_exceeded')
-        ->and($generation->error_message)->toBe('limite diário atingido')
+        ->and($generation->error_message)->toBe('Daily limit reached.')
         ->and($generation->charge_nano)->toBe(0)
         ->and($generation->provider_cost_nano)->toBe(0)
         ->and($job->releasedFor)->toBeNull();

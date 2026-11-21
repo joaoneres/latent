@@ -81,7 +81,7 @@ class SyncPixelforgeGenerationsCommand extends Command
             return $message;
         }
 
-        return 'geração não encontrada';
+        return 'Generation not found.';
     }
 
     /**

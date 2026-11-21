@@ -17,6 +17,11 @@ class EstimateGenerationHandler
 
     public function handle(Request $request): void
     {
+        $this->publish($request);
+    }
+
+    private function publish(Request $request): void
+    {
         $request->attributes->set('estimate', $this->estimate($request));
     }
 

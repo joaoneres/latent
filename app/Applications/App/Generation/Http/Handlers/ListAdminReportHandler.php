@@ -16,6 +16,11 @@ class ListAdminReportHandler
 
     public function handle(Request $request): void
     {
+        $this->publish($request);
+    }
+
+    private function publish(Request $request): void
+    {
         $grouped = $this->group();
         $usage = $this->usage->forDates(array_keys($grouped));
 
