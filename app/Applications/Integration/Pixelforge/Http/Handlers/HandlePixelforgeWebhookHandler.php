@@ -3,6 +3,7 @@
 namespace App\Applications\Integration\Pixelforge\Http\Handlers;
 
 use App\Applications\Http\HandlesHttpRequest;
+use App\Enums\PixelforgeEventType;
 use App\Models\Generation;
 use App\Models\WebhookEvent;
 use App\Services\Pixelforge\ApplyGenerationState;
@@ -98,13 +99,15 @@ class HandlePixelforgeWebhookHandler implements HandlesHttpRequest
 
     private function applyEvent(): void
     {
-        if ($this->type === 'ping') {
+        $type = PixelforgeEventType::tryFrom($this->type);
+
+        if ($type === PixelforgeEventType::Ping) {
             $this->markProcessed();
 
             return;
         }
 
-        if (! in_array($this->type, ['generation.processing', 'generation.succeeded', 'generation.failed'], true)) {
+        if ($type === null || ! $type->appliesToGeneration()) {
             return;
         }
 

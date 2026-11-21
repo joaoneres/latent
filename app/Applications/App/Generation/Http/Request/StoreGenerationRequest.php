@@ -2,6 +2,8 @@
 
 namespace App\Applications\App\Generation\Http\Request;
 
+use App\Enums\ImageQuality;
+use App\Enums\ImageSize;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -41,8 +43,8 @@ class StoreGenerationRequest extends FormRequest
     {
         return [
             'prompt' => ['required', 'string', 'max:4000'],
-            'size' => ['required', 'string', Rule::in(['1024x1024', '1536x1024', '1024x1536'])],
-            'quality' => ['required', 'string', Rule::in(['low', 'medium', 'high'])],
+            'size' => ['required', 'string', Rule::enum(ImageSize::class)],
+            'quality' => ['required', 'string', Rule::enum(ImageQuality::class)],
             'reference_images' => ['nullable', 'array', 'max:4'],
             'reference_images.*' => ['required', 'string', 'url:http,https'],
         ];

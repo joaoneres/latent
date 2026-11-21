@@ -3,6 +3,7 @@
 namespace App\Services\Pixelforge;
 
 use App\Enums\GenerationStatus;
+use App\Enums\ImageQuality;
 use App\Models\Generation;
 
 final class GenerationPresenter
@@ -42,12 +43,7 @@ final class GenerationPresenter
 
     private function qualityLabel(string $quality): string
     {
-        return match ($quality) {
-            'low' => 'Low',
-            'medium' => 'Medium',
-            'high' => 'High',
-            default => $quality,
-        };
+        return ImageQuality::tryFrom($quality)?->label() ?? $quality;
     }
 
     private function charge(Generation $generation): ?string

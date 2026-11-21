@@ -4,6 +4,7 @@ namespace App\Applications\Integration\Pixelforge\Console\Commands;
 
 use App\Clients\Pixelforge\PixelforgeClient;
 use App\Enums\GenerationStatus;
+use App\Enums\PixelforgeErrorCode;
 use App\Exceptions\ClientException;
 use App\Models\Generation;
 use App\Services\Pixelforge\ApplyGenerationState;
@@ -107,7 +108,7 @@ class SyncPixelforgeGenerationsCommand extends Command
 
     private function failMissing(Generation $generation, Response $response): void
     {
-        $this->state->fail($generation, 'not_found', $this->notFoundMessage($response));
+        $this->state->fail($generation, PixelforgeErrorCode::NotFound->value, $this->notFoundMessage($response));
     }
 
     private function stopForLimit(): bool

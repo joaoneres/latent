@@ -3,6 +3,8 @@
 namespace App\Applications\App\Generation\Http\Handlers;
 
 use App\Applications\Http\HandlesHttpRequest;
+use App\Enums\ImageQuality;
+use App\Enums\ImageSize;
 use App\Services\Pixelforge\MoneyFormatter;
 use App\Services\Pixelforge\PricingCalculator;
 use App\Services\Pixelforge\PricingCatalog;
@@ -68,22 +70,22 @@ class EstimateGenerationHandler implements HandlesHttpRequest
     {
         $size = $request->query('size');
 
-        if (! is_string($size) || ! in_array($size, ['1024x1024', '1536x1024', '1024x1536'], true)) {
-            return '1024x1024';
+        if (! is_string($size)) {
+            return ImageSize::Square->value;
         }
 
-        return $size;
+        return ImageSize::tryFrom($size)?->value ?? ImageSize::Square->value;
     }
 
     private function quality(Request $request): string
     {
         $quality = $request->query('quality');
 
-        if (! is_string($quality) || ! in_array($quality, ['low', 'medium', 'high'], true)) {
-            return 'medium';
+        if (! is_string($quality)) {
+            return ImageQuality::Medium->value;
         }
 
-        return $quality;
+        return ImageQuality::tryFrom($quality)?->value ?? ImageQuality::Medium->value;
     }
 
     private function referenceImageCount(Request $request): int
